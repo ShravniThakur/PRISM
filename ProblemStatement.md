@@ -1,0 +1,10 @@
+# Problem Statement 1: AI Driven Detection of Synthetic Media and Phishing Attacks in Securities Markets
+
+### Problem
+The rapid advancement of generative AI has introduced a new class of threats to the securities market ecosystem. Attackers are now capable of creating hyper-personalised phishing emails crafted using large language models synthetic voice calls impersonating company executives or regulators deepfake videos of CEOs, Chief Investment Officers, and market experts, and AIgenerated social media content designed to manipulate retail investor behaviour. These attacks target brokers, investors, and market infrastructure institutions, with retail investors and firstgeneration investors on social media platforms being particularly vulnerable Simultaneously, a parallel and equally serious gap exists on the other side, the authenticity of legitimate financial communications. There are currently limited mechanisms to verify that a communication purportedly from SEBI, a stock exchange, a listed company, or a registered intermediary is genuine. This absence of an authentication framework compounds the harm caused by synthetic media attacks, as investors have no reliable way to distinguish official communications from sophisticated impersonations. Together, these two dimensions, detection of malicious synthetic content and verification of authentic financial communications, constitute a systemic threat to market integrity and investor protection that existing infrastructure does not adequately address.
+
+### Desired outcome
+Develop a technology-based solution that addresses AI-generated threats to investors and market integrity in the securities ecosystem. It should demonstrably improve the ability of retail investors, intermediaries, or market infrastructure institutions to identify, flag, or respond to AI-generated threats in the securities market context. Solutions should specify their target user, the channel(s) addressed and provide clear evidence of detection or authentication performance.
+
+### Project Name
+PRISM - Phishing and Representation Integrity Surveillance for Markets
