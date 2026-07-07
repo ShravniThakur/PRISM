@@ -92,3 +92,26 @@ PRISM is designed as a **Dual-Layered System** utilizing independent microservic
 4.  The AI Microservice runs parallel inference on the Text, Audio, and Video modules.
 5.  All scores are fed into the **Random Forest Scoring Engine**.
 6.  The final PRISM Threat Score is returned to the Portal and displayed to the user with actionable advice.
+
+## Additional Features
+
+1. **The "Viral Threat Intelligence" Dashboard (For SEBI)**
+- Right now, PRISM helps the individual investor. But what if PRISM helped the government?
+The Feature: If 50 different investors all upload the exact same Deepfake video to your portal within 24 hours, PRISM automatically flags this as a Viral Coordinated Attack.
+- How it works: It groups the uploads by their Perceptual Hash (pHash) and generates an automated "Red Alert" on the SEBI Admin Dashboard. It tells SEBI: "A deepfake of your CEO is currently going viral on WhatsApp. Here is the file, issue a public warning immediately."
+
+2. **The WhatsApp "Bot" Integration (Frictionless UX)**
+- Investors are lazy. They don't want to open a web portal and drag-and-drop files.
+The Feature: A PRISM WhatsApp Bot.
+- How it works: If an investor gets a suspicious forwarded message on WhatsApp, they literally just "Forward" it to the PRISM Bot's phone number. The Bot uses the WhatsApp Business API to hit your Microservices and instantly replies: 🔴 "DANGER: 98% Threat Score. Do not click."
+- The Implementation: The Twilio Sandbox (The Real Code Way)
+Twilio is a massive communications API company that gives developers a completely free WhatsApp Sandbox specifically for testing and hackathons.
+- How it works: You sign up for a free Twilio account, and they give you a temporary WhatsApp phone number. You link that number to a simple Python Webhook in your FastAPI backend.
+The Demo: During your pitch, you can literally have the judges text that Twilio number from their personal phones, and your Python backend will instantly reply with the PRISM Threat Score. It is 100% free and works perfectly for a 6-day hackathon.
+
+3. **"Explainable AI" (XAI) Heatmaps**
+- One of the biggest criticisms of AI is that it is a "Black Box" (it just spits out a number, and you have to trust it).
+- The Feature: When the Web Portal flags a video as a deepfake, it doesn't just show a score. It shows a Heatmap Image of the CEO's face, with a glowing red box over the exact pixels that were manipulated (usually the mouth or eyes).
+- How to build it: In PyTorch, your engineer can use a technique called Grad-CAM (Gradient-weighted Class Activation Mapping) on the Siglip/XceptionNet model. It literally extracts the visual attention map from the neural network and returns it to the frontend.
+
+
