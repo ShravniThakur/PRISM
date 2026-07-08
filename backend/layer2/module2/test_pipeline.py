@@ -38,5 +38,5 @@ def run_test(video_path):
 
 if __name__ == "__main__":
     # Test on real and fake videos
-    run_test("test/real.mov")
-    run_test("test/fake.mov")
+    run_test("sample_videos/real.mov")
+    run_test("sample_videos/fake.mov")
