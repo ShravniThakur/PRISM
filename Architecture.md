@@ -48,8 +48,8 @@ PRISM is designed as a **Dual-Layered System** utilizing independent microservic
 *   **Output:** `video_fake_score` (0.0 to 1.0) based on visual artifacts and blending inconsistencies.
 
 ### Module 3: Audio Analysis (Synthetic Voice)
-*   **Model:** `audio_deepfake_rawnet2.pth` (ASVspoof 2021 Baseline).
-*   **The Logic:** Analyzes the raw `.wav` or `.flac` waveform directly using Mel-scale sinc filters, completely bypassing the need for manual spectrogram extraction.
+*   **Model:** `wav2vec2-deepfake-voice-detector` (Hugging Face Wav2Vec2 Architecture).
+*   **The Logic:** Analyzes the raw 16kHz audio waveform directly using a pre-trained Transformer architecture. Wav2Vec2 is vastly superior for production environments because it is highly robust against video compression (unlike older models which fail on WhatsApp or web-compressed `.mov`/`.mp4` audio).
 *   **Output:** `audio_fake_score` (0.0 to 1.0) detecting AI-generated acoustic anomalies.
 
 ---
@@ -115,3 +115,6 @@ The Demo: During your pitch, you can literally have the judges text that Twilio 
 - How to build it: In PyTorch, your engineer can use a technique called Grad-CAM (Gradient-weighted Class Activation Mapping) on the Siglip/XceptionNet model. It literally extracts the visual attention map from the neural network and returns it to the frontend.
 
 
+## Drive Links
+- Datasets : https://drive.google.com/drive/folders/1Pv7sMyVCeRKnZhjiNm4EINIrQklpTOPX?usp=drive_link
+- DeepFakeModels : https://drive.google.com/drive/folders/1zxCBsAqQWvaaPiq-jqh1QOCB2UA8KsaH?usp=sharing
