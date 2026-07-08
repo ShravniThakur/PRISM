@@ -39,7 +39,7 @@ Here is exactly what every file and folder inside `app/` is doing:
 *   **`signing.py`**: The mathematical logic to verify a cryptographic signature against a public key.
 
 ### 🧠 The Fuzzy Hashers (`hashing/` folder)
-*   **`text_hash.py`**: Uses `TLSH` for a semantic text fingerprint and actively extracts **Critical Tokens** (URLs, account numbers) to catch phishing links.
+*   **`text_hash.py` (The "Dual-Lock" System)**: Uses `TLSH` for a semantic text fingerprint. However, fuzzy hashing alone is dangerous because swapping a single URL barely changes the hash. To fix this, it actively extracts **Critical Tokens** (URLs, account numbers) and creates a strict mathematical lock on them alongside the fuzzy hash. If a hacker changes a single letter in a URL, the lock shatters and PRISM instantly flags it as Phishing!
 *   **`image_hash.py`**: Calculates a `pHash` (Perceptual Hash) for images to survive compression.
 *   **`video_hash.py`**: Extracts frames and calculates a temporal `pHash` fingerprint for video streams.
 
@@ -56,6 +56,13 @@ python3 -m venv .venv
 ```bash
 .venv/bin/python scripts/seed_demo.py        # optional: demo entities + signed advisory
 .venv/bin/uvicorn app.main:app --reload      # http://127.0.0.1:8000/docs
+```
+
+## Generating Signatures Manually (For Swagger UI Testing)
+If you are testing the API using the Swagger UI, you will need to generate cryptographic signatures locally on your machine (since Private Keys should never be sent over the internet).
+Once you receive the `payload_b64` from the `/sign/prepare` endpoint, run this command in your terminal to generate the final signature:
+```bash
+python3 scripts/sign_payload.py --key path_to_your_private_key.pem --payload-b64 "PASTE_PAYLOAD_B64_HERE"
 ```
 
 ## Test
@@ -77,6 +84,26 @@ python3 -m venv .venv
 
 `POST /verify` output feeds the Random Forest scoring engine (the
 `is_authenticated_sender` feature) and the portal's verdict panel.
+
+### 🌟 The "Frictionless Verification" UX
+Traditional cryptography requires the investor to upload a `.sig` signature file and a `.pem` public key alongside the document. PRISM eliminates this friction entirely.
+When an investor uploads a suspicious file to `POST /verify`, they do not need to provide a signature or even select the entity from a dropdown. PRISM automatically computes the fuzzy hash of the upload and searches the *entire* `SignedAsset` database to find if any registered entity has ever signed a similar hash. If a match is found, PRISM automatically pulls the original signature and verifies it against the entity's stored public key on the backend. The investor just drags and drops the file, and PRISM does all the heavy lifting!
+
+**Why do we still need the Signature if we are just searching the Database?**
+To prevent a **Database Poisoning Attack**. If PRISM only stored fuzzy hashes without signatures, a hacker who breached the PRISM server could simply insert the fuzzy hash of their phishing video into the database and label it as "SEBI". But because PRISM requires a strict `Ed25519` cryptographic signature, even if a hacker breaches the database, they cannot forge a valid signature without SEBI's offline Private Key. 
+
+When PRISM attempts the cryptographic math during verification, it will instantly fail and reject the forged database entry. This guarantees that no one—not even the developers of PRISM or a hacker who breaches the server—can forge a document. Only the person holding the offline Private Key has the power to authorize a hash. It's a Zero-Trust architecture at its finest!
+
+### 🖋️ The Cryptography Analogy: Pen, Ink, and Magnifying Glass
+If you are confused by how the Public Key, Private Key, and Signature interact, think of it like this:
+*   **The Private Key** is a unique, magical **Pen**. It is locked inside SEBI's vault, and only they can ever hold it.
+*   **The Signature** is the **Ink** left on the document after they use the pen.
+*   **The Public Key** is a special **Magnifying Glass** that SEBI gives away for free to everyone in the world (stored in the PRISM database).
+
+Because of how Asymmetric Cryptography (`Ed25519`) works, that specific Magnifying Glass (Public Key) is mathematically entangled with that specific Pen (Private Key). 
+When PRISM looks at the Ink (Signature) through the Magnifying Glass (Public Key), the cryptography equations click together perfectly. The Magnifying Glass essentially says: *"I can mathematically prove, beyond a shadow of a doubt, that the specific Pen linked to me was used to write this Ink."* 
+
+It allows PRISM to verify SEBI's identity with 100% certainty, without SEBI ever having to show PRISM their secret Pen!
 
 Accepted uploads: raw text, `.txt`, `.eml`, `.pdf` (text is extracted),
 images (`.png .jpg .webp ...`), video (`.mp4 .mov ...`). Ambiguous files can
