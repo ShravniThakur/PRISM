@@ -17,6 +17,31 @@ introduces or alters any critical token fails verification even when the
 prose is near-identical, and `/verify` flags it as suspected tampering.
 Private keys never touch the server — signing happens client-side
 (see `scripts/sign_payload.py`).
+## 📂 File Architecture
+Here is exactly what every file and folder inside `app/` is doing:
+
+### ⚙️ The Core Server
+*   **`main.py`**: The entry point. It boots up the FastAPI web server and mounts all the API routes.
+*   **`config.py`**: The "Control Center". Stores sensitivity thresholds (e.g., how different a video's pixels can be before it's flagged as a Deepfake rather than WhatsApp compression).
+
+### 🗄️ The Database Layer
+*   **`db.py`**: Connects to a local SQLite database to safely store the registry of trusted entities.
+*   **`models.py`**: Defines the database tables using SQLAlchemy (`Entity` and `SignedAsset`).
+*   **`schemas.py`**: Pydantic models that strictly validate all incoming JSON data to prevent malformed requests.
+
+### 🌐 The API Endpoints (`routers/` folder)
+*   **`entities.py`**: Endpoints to register trusted organizations and store their Public Keys.
+*   **`sign.py`**: Endpoints for entities to publish a new video (calculates fingerprint and stores cryptographic signature).
+*   **`verify.py`**: **The core verification endpoint.** Takes a suspicious forwarded video, calculates its fingerprint, and checks the database for a valid signature.
+
+### 🔐 The Cryptography (`crypto/` folder)
+*   **`keys.py`**: Uses `Ed25519` asymmetric cryptography to generate Public and Private key pairs.
+*   **`signing.py`**: The mathematical logic to verify a cryptographic signature against a public key.
+
+### 🧠 The Fuzzy Hashers (`hashing/` folder)
+*   **`text_hash.py`**: Uses `TLSH` for a semantic text fingerprint and actively extracts **Critical Tokens** (URLs, account numbers) to catch phishing links.
+*   **`image_hash.py`**: Calculates a `pHash` (Perceptual Hash) for images to survive compression.
+*   **`video_hash.py`**: Extracts frames and calculates a temporal `pHash` fingerprint for video streams.
 
 ## Setup
 
