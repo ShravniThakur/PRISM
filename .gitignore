@@ -1,2 +1,13 @@
 Datasets/
 DeepFakeModels/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Layer 1 runtime artifacts
+*.db
+backend/layer1/scripts/demo_keys/
+.env
