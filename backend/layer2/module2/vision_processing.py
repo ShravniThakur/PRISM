@@ -33,15 +33,28 @@ class VisionProcessor:
                 break
                 
             if frame_count % frame_interval == 0:
-                # 1. OCR Processing
-                # Convert frame to PIL Image for Tesseract
-                pil_img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                text = pytesseract.image_to_string(pil_img).strip()
+                # 1. Image Preprocessing for OCR
+                # Convert full frame to grayscale
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                
+                # Apply Gaussian Blur to remove compression artifacts
+                blur = cv2.GaussianBlur(gray, (5,5), 0)
+                
+                # Apply Otsu's thresholding to binarize the image (black text on white background or vice versa)
+                _, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+                
+                # Convert thresholded image to PIL for Tesseract
+                pil_img = Image.fromarray(thresh)
+                
+                # Use PSM 11 (Sparse text) to find as much text as possible in no particular order
+                custom_config = r'--psm 11'
+                text = pytesseract.image_to_string(pil_img, config=custom_config).strip()
+                
                 if text:
                     # Clean up random Tesseract noise (keep alphanumeric and basic punctuation)
                     cleaned = re.sub(r'[^a-zA-Z0-9\s.,!?]', '', text)
                     cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-                    if len(cleaned) > 1: # Ignore single random characters
+                    if len(cleaned) > 2: # Ignore 1-2 character random noise
                         ocr_texts.append(cleaned)
                     
             frame_count += 1
