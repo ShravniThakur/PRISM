@@ -43,20 +43,6 @@ Here is exactly what every file and folder inside `app/` is doing:
 *   **`image_hash.py`**: Calculates a `pHash` (Perceptual Hash) for images to survive compression.
 *   **`video_hash.py`**: Extracts frames and calculates a temporal `pHash` fingerprint for video streams.
 
-## Setup
-
-```bash
-cd backend/layer1
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-```
-
-## Run
-
-```bash
-.venv/bin/python scripts/seed_demo.py        # optional: demo entities + signed advisory
-.venv/bin/uvicorn app.main:app --reload      # http://127.0.0.1:8000/docs
-```
 
 ## Generating Signatures Manually (For Swagger UI Testing)
 If you are testing the API using the Swagger UI, you will need to generate cryptographic signatures locally on your machine (since Private Keys should never be sent over the internet).
@@ -108,31 +94,6 @@ It allows PRISM to verify SEBI's identity with 100% certainty, without SEBI ever
 Accepted uploads: raw text, `.txt`, `.eml`, `.pdf` (text is extracted),
 images (`.png .jpg .webp ...`), video (`.mp4 .mov ...`). Ambiguous files can
 be disambiguated with a `media_type=text|image|video` form field.
-
-## End-to-end demo (curl)
-
-```bash
-# 1. Register an entity (save the private key!)
-curl -s -X POST localhost:8000/entities -H 'content-type: application/json' \
-  -d '{"name": "SEBI", "type": "regulator"}' > entity.json
-python3 -c "import json;open('sebi.pem','w').write(json.load(open('entity.json'))['private_key_pem'])"
-
-# 2. Prepare: get the payload to sign
-curl -s -X POST localhost:8000/sign/prepare -F 'text=<official announcement text>' > prep.json
-
-# 3. Sign locally (private key never leaves your machine)
-SIG=$(python3 scripts/sign_payload.py --key sebi.pem \
-      --payload-b64 "$(python3 -c "import json;print(json.load(open('prep.json'))['payload_b64'])")")
-
-# 4. Submit the signed record
-curl -s -X POST localhost:8000/sign/submit -H 'content-type: application/json' \
-  -d "{\"entity_id\": \"$(python3 -c "import json;print(json.load(open('entity.json'))['id'])")\",
-       \"payload_b64\": $(python3 -c "import json;print(json.dumps(json.load(open('prep.json'))['payload_b64']))"),
-       \"signature_b64\": \"$SIG\", \"title\": \"Official announcement\"}"
-
-# 5. Verify a forwarded copy
-curl -s -X POST localhost:8000/verify -F 'text=<the forwarded version>'
-```
 
 ## Tuning
 
