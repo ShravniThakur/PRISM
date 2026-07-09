@@ -19,10 +19,6 @@ class AudioProcessor:
             # Load audio using librosa
             X, fs = librosa.load(audio_path, sr=self.sample_rate)
             
-            # Crop to max duration if it's too long
-            if len(X) > self.max_samples:
-                X = X[:self.max_samples]
-            
             return X
             
         except Exception as e:

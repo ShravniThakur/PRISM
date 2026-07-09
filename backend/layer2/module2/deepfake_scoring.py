@@ -1,8 +1,13 @@
 import torch
 import torch.nn.functional as F
-from transformers import AutoImageProcessor, AutoModelForImageClassification
-from transformers import AutoFeatureExtractor, AutoModelForAudioClassification
+from transformers import AutoFeatureExtractor, AutoModelForAudioClassification, pipeline
 import numpy as np
+from pathlib import Path
+
+# Dynamically resolve PRISM root directory (3 levels up from module2)
+CURRENT_DIR = Path(__file__).resolve().parent
+PRISM_ROOT = CURRENT_DIR.parent.parent.parent
+DEEPFAKE_MODELS_DIR = PRISM_ROOT / "DeepFakeModels"
 
 class DeepfakeScoringEngine:
     def __init__(self):
@@ -10,7 +15,6 @@ class DeepfakeScoringEngine:
         self.device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
         print(f"DeepfakeScoringEngine running on: {self.device}")
         
-        self.video_processor = None
         self.video_model = None
         self.audio_extractor = None
         self.audio_model = None
@@ -19,23 +23,24 @@ class DeepfakeScoringEngine:
         self._load_audio_model()
 
     def _load_video_model(self):
-        print("Loading Video Deepfake Model (SigLIP)...")
-        # Load the SigLIP vision model
-        # Using a widely available pre-trained deepfake classification model from HF
-        model_name = "prithivMLmods/deepfake-detector-model-v1"
+        print("Loading Video Deepfake Model (DeepGuard/KoreaPeter)...")
         try:
-            self.video_processor = AutoImageProcessor.from_pretrained(model_name)
-            self.video_model = AutoModelForImageClassification.from_pretrained(model_name)
-            self.video_model.to(self.device)
-            self.video_model.eval()
+            device_str = "mps" if self.device.type == "mps" else "cpu"
+            self.video_model = pipeline(
+                "video-classification",
+                model="KoreaPeter/ms-eff-gcvit-deepfake-b5-ff-plus-plus",
+                trust_remote_code=True,
+                device=device_str,
+                model_kwargs={"cache_dir": str(DEEPFAKE_MODELS_DIR)}
+            )
+            print("Video model loaded successfully.")
         except Exception as e:
             print(f"Failed to load video model: {e}")
 
     def _load_audio_model(self):
         print("Loading Audio Deepfake Model (Wav2Vec2)...")
         # Load local Wav2Vec2 model from DeepFakeModels folder
-        # garystafford/wav2vec2-deepfake-voice-detector
-        model_path = "/Users/shravnithakur/Desktop/PRISM/DeepFakeModels/wav2vec2-deepfake-voice-detector"
+        model_path = str(DEEPFAKE_MODELS_DIR / "wav2vec2-deepfake-voice-detector")
         try:
             self.audio_extractor = AutoFeatureExtractor.from_pretrained(model_path)
             self.audio_model = AutoModelForAudioClassification.from_pretrained(model_path)
@@ -45,67 +50,77 @@ class DeepfakeScoringEngine:
         except Exception as e:
             print(f"Failed to load audio model: {e}")
 
-    def score_video_faces(self, face_tensors: list) -> float:
+    def score_video(self, video_path: str) -> float:
         """
-        Takes a list of face tensors (already cropped by MTCNN).
-        Passes them through the SigLIP model to get fake probabilities.
-        Returns the highest fake probability found in the video.
+        Takes a path to a raw video file.
+        Passes it through the DeepGuard pipeline.
+        Returns the fake probability.
         """
-        if not face_tensors or not self.video_model:
+        if not video_path or not self.video_model:
             return 0.0
             
-        fake_probs = []
-        with torch.no_grad():
-            for face_tensor in face_tensors:
-                # MTCNN returns tensors (C, H, W). We need to convert back to format expected by HF processor
-                # HF processor usually expects PIL images or numpy arrays in (H, W, C)
-                # Ensure it is moved to CPU before converting to numpy
-                face_np = face_tensor.permute(1, 2, 0).cpu().numpy()
-                
-                # Normalize back to 0-255 range if MTCNN scaled it to -1 to 1
-                if face_np.min() < 0:
-                    face_np = ((face_np + 1) * 127.5).astype(np.uint8)
-                else:
-                    face_np = face_np.astype(np.uint8)
-                
-                inputs = self.video_processor(images=face_np, return_tensors="pt")
-                inputs = {k: v.to(self.device) for k, v in inputs.items()}
-                
-                outputs = self.video_model(**inputs)
-                
-                # Apply softmax to get probabilities
-                probs = F.softmax(outputs.logits, dim=-1)
-                
-                # According to SigLIP config: 0 is Fake, 1 is Real
-                fake_prob = probs[0][0].item() 
-                fake_probs.append(fake_prob)
-                
-        # Return the maximum fake probability found across all frames (better than average to catch splices)
-        if fake_probs:
-            return max(fake_probs)
+        try:
+            results = self.video_model(video_path)
+            # results format: [{'label': 'fake', 'score': 0.9972}, {'label': 'real', 'score': 0.0028}]
+            # Find the score for 'fake'
+            for res in results:
+                if res['label'] == 'fake':
+                    return res['score']
+        except Exception as e:
+            print(f"Error scoring video: {e}")
+            
         return 0.0
 
-    def score_audio(self, audio_array: np.ndarray) -> float:
+    def score_audio(self, audio_array: np.ndarray, chunk_duration_sec: int = 5) -> float:
         """
-        Takes a 1D audio numpy array (16kHz) and runs Wav2Vec2.
+        Takes a 1D audio numpy array (16kHz), chunks it, and runs Wav2Vec2.
+        Returns the filtered average fake probability.
         """
         if not self.audio_model or audio_array is None:
             return 0.0
             
+        sampling_rate = 16000
+        chunk_size = sampling_rate * chunk_duration_sec
+        fake_probs = []
+        
         with torch.no_grad():
-            # Pass raw waveform through feature extractor
-            inputs = self.audio_extractor(
-                audio_array, 
-                sampling_rate=16000, 
-                return_tensors="pt"
-            )
-            inputs = {k: v.to(self.device) for k, v in inputs.items()}
-            
-            outputs = self.audio_model(**inputs)
-            
-            # The Wav2Vec2 model outputs logits
-            probs = F.softmax(outputs.logits, dim=-1)
-            
-            # According to garystafford model config: 0 is real, 1 is fake
-            fake_prob = probs[0][1].item()
-            return fake_prob
+            for i in range(0, len(audio_array), chunk_size):
+                chunk = audio_array[i:i + chunk_size]
+                
+                # Ignore chunks that are too short (e.g. < 1 second) to prevent garbage predictions
+                if len(chunk) < sampling_rate:
+                    continue
+                    
+                inputs = self.audio_extractor(
+                    chunk, 
+                    sampling_rate=sampling_rate, 
+                    return_tensors="pt"
+                )
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                
+                outputs = self.audio_model(**inputs)
+                
+                probs = F.softmax(outputs.logits, dim=-1)
+                
+                # According to garystafford model config: 0 is real, 1 is fake
+                fake_prob = probs[0][1].item()
+                fake_probs.append(fake_prob)
+                
+        # Remove outliers and average the remaining probabilities
+        if fake_probs:
+            if len(fake_probs) > 2:
+                q1 = np.percentile(fake_probs, 25)
+                q3 = np.percentile(fake_probs, 75)
+                iqr = q3 - q1
+                lower_bound = q1 - 1.5 * iqr
+                upper_bound = q3 + 1.5 * iqr
+                
+                filtered_probs = [p for p in fake_probs if lower_bound <= p <= upper_bound]
+                
+                if not filtered_probs:
+                    filtered_probs = fake_probs
+            else:
+                filtered_probs = fake_probs
+                
+            return sum(filtered_probs) / len(filtered_probs)
+        return 0.0
