@@ -11,7 +11,7 @@ def run_test(video_path):
         return
 
     # Initialize components
-    ingestor = MediaIngestor(upload_dir="layer2/module2/uploads")
+    ingestor = MediaIngestor(upload_dir="uploads")
     vision = VisionProcessor()
     audio = AudioProcessor()
     scorer = DeepfakeScoringEngine()
