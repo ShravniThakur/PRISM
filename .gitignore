@@ -13,6 +13,7 @@ __pycache__/
 *.db
 backend/layer1/scripts/demo_keys/
 .env
+*.pem
 
 # macOS
 .DS_Store
