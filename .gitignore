@@ -23,3 +23,6 @@ backend/layer1/scripts/demo_keys/
 backend/layer2/module1/models/finbert_baseline/
 *.csv
 
+# Layer 3
+backend/layer3/data/
+backend/layer3/models/
