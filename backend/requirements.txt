@@ -25,6 +25,7 @@ opencv-python>=4.9
 pytesseract
 facenet-pytorch
 numpy>=1.26
+ultralytics
 
 # Layer 3: Central Brain
 pandas

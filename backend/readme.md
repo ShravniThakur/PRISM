@@ -28,7 +28,7 @@ The heavy-lifting AI layer. It loads the `FinBERT` sequence classifier for text,
 *(Note: Takes 10-15 seconds to boot up as it loads 2GB+ of tensor weights into memory).*
 ```bash
 # From the backend/ directory:
-python -m uvicorn layer2.main:app --port 8001
+python -m uvicorn layer2.main:app --port 8001 --reload
 ```
 *Swagger UI:* [http://localhost:8001/docs](http://localhost:8001/docs)
 
