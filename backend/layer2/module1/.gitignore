@@ -1,0 +1,37 @@
+# ============================================================
+# PRISM | Layer 2 | Module 1 — .gitignore
+# Data and model weights live on Google Drive; only lightweight
+# eval fixtures and scripts are version-controlled here.
+# ============================================================
+
+# --- Data (all subfolders except eval/) ----------------------
+data/raw/
+data/processed/
+data/synthetic/
+
+# Keep the eval holdout set in git once created
+!data/eval/
+!data/eval/**
+
+# --- Model weights -------------------------------------------
+models/finbert_baseline/
+
+# --- Large binary weight formats (safety net) ----------------
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+*.onnx
+
+# --- Python artefacts ----------------------------------------
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# --- Notebook checkpoints ------------------------------------
+.ipynb_checkpoints/
+
+# --- Editor / OS artefacts -----------------------------------
+.DS_Store
+Thumbs.db

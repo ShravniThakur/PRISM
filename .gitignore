@@ -14,22 +14,21 @@ __pycache__/
 backend/layer1/scripts/demo_keys/
 .env
 
-# macOS
+# macOS / Windows
 .DS_Store
 **/.DS_Store
+Thumbs.db
 
-# Ignore model weights and large datasets
-backend/layer2/module1/models/finbert_baseline/
-*.csv
+# Certificates / secrets
 *.pem
 
-# macOS
-.DS_Store
-**/.DS_Store
-
-# Ignore model weights and large datasets
-backend/layer2/module1/models/finbert_baseline/
+# CSV files (large datasets live on Google Drive)
 *.csv
+# Exceptions — keep these in version control:
 !backend/layer3/data/*.csv
+!backend/layer2/module1/data/eval/*.csv
 
-
+# Model weights and large binaries (module1)
+backend/layer2/module1/models/finbert_baseline/
+*.safetensors
+*.bin

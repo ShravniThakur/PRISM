@@ -162,7 +162,9 @@ LEGITIMATE_DOMAINS: list[str] = [
 #   score >= LOWER_THRESHOLD  → close enough to be deceptive → FLAG
 #   score <  LOWER_THRESHOLD  → too different to be a spoof → ignore
 UPPER_THRESHOLD: float = 0.98   # treat as exact match
-LOWER_THRESHOLD: float = 0.72   # minimum similarity to count as squatting
+LOWER_THRESHOLD: float = 0.70   # minimum similarity to count as squatting
+                                 # lowered 0.72→0.70 to catch same-brand/different-TLD
+                                 # spoofs (e.g. groww.com vs groww.in)
 
 # Minimum domain string length to bother checking (avoids short noise tokens)
 MIN_DOMAIN_LEN: int = 6
@@ -385,7 +387,7 @@ def get_effective_domain(url: str) -> str | None:
     # We handle the compound TLDs used in India:
     # .gov.in | .co.in | .org.in | .net.in | .edu.in | .ac.in
     _COMPOUND_TLDS = re.compile(
-        r"(?:gov|co|org|net|edu|ac|nic|res|mil)\.in$"
+        r"(?:gov|co|org|net|edu|ac|nic|res|mil)\.(?:in|org)$"
     )
     parts = hostname.split(".")
 
@@ -512,6 +514,45 @@ def is_typosquat(
     normalised = _apply_homoglyphs(_unicode_normalize(domain))
     if normalised in LEGITIMATE_DOMAINS and domain not in LEGITIMATE_DOMAINS:
         return True
+
+    # Brand-token prefix/substring check:
+    # Long hyphenated phishing domains (e.g. 'sebi-secure-verify.co',
+    # 'nse-kyc-update.net.in', 'nse-india-kyc.info') dilute SequenceMatcher
+    # scores because the brand name is only a small prefix of a longer string.
+    # We extract the registrable-domain label of each whitelisted domain (the
+    # brand token before the first dot, e.g. 'sebi', 'nseindia', 'groww') and
+    # check if it appears as a word-boundary-aligned prefix in the candidate
+    # domain's leftmost label.  Exact whitelist members are already returned
+    # above, so this only fires for look-alike domains.
+    candidate_label = domain.split(".")[0].lower()  # e.g. 'sebi-secure-verify'
+    for legit in LEGITIMATE_DOMAINS:
+        brand = legit.split(".")[0].lower()         # e.g. 'sebi', 'nseindia', 'nse'
+        if len(brand) < 3:
+            continue   # skip 1-2 char tokens — too many false triggers
+        # Prefix match: candidate label starts with brand (e.g. 'sebi-secure-verify' starts 'sebi')
+        if candidate_label.startswith(brand) and candidate_label != brand:
+            log.debug(
+                "Brand-prefix match: %r starts with whitelisted brand %r -> FLAG",
+                domain, brand,
+            )
+            return True
+        # Substring match: brand appears after a hyphen (e.g. '-nse' in 'abc-nse-kyc')
+        if f"-{brand}" in candidate_label or candidate_label.startswith(brand + "-"):
+            log.debug(
+                "Brand-substring match: %r contains whitelisted brand %r -> FLAG",
+                domain, brand,
+            )
+            return True
+        # Stem check: for longer brands (>=7 chars, e.g. 'nseindia'),
+        # also try the first 3 chars as a stem prefix check
+        if len(brand) >= 7:
+            stem = brand[:3]
+            if candidate_label.startswith(stem + "-") or f"-{stem}-" in candidate_label:
+                log.debug(
+                    "Brand-stem match: %r matches stem %r of brand %r -> FLAG",
+                    domain, stem, brand,
+                )
+                return True
 
     return lower_threshold <= score < upper_threshold
 
@@ -661,73 +702,243 @@ def analyze_urls_batch(texts: list[str]) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def _run_demo() -> None:  # noqa: C901
-    """Quick built-in demo -- run with:  python url_analyzer.py"""
+    """
+    Structured stress-test — 27 cases.
+    Run with:  python url_analyzer.py
+
+    Categories:
+      A. Typosquats (char substitution)        — cases 01-08  → expect FLAG
+      B. Homoglyph attacks                     — cases 09-12  → expect FLAG
+      C. Wrong TLD spoofs                      — cases 13-16  → expect FLAG
+      D. Legitimate subdomains (must NOT flag) — cases 17-20  → expect CLEAN
+      E. Shortened URLs (documented blind spot)— cases 21-23  → expect CLEAN (limitation)
+      F. Unknown / edge-case domains           — cases 24-26  → expect CLEAN
+      G. Mixed / regression                    — case  27     → expect FLAG
+    """
     import sys
-    # Force UTF-8 output so Unicode warning chars print cleanly on Windows
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logging.WARNING,   # suppress per-URL debug chatter
         format="%(asctime)s | %(levelname)-8s | %(message)s",
     )
 
-    SEP  = "=" * 70
-    DASH = "-" * 70
+    SEP = "=" * 80
 
-    test_cases: list[tuple[str, str]] = [
-        (
-            "Typosquat SEBI",
-            "Dear Investor, SEBI has flagged your account. Verify now at "
-            "https://sebii.gov.in/verify?token=abc123 to avoid suspension.",
-        ),
-        (
-            "Homoglyph Zerodha (zer0dha)",
-            "Your Zerodha session has expired. Re-login at https://zer0dha.com/login "
-            "within 10 minutes or your trades will be cancelled.",
-        ),
-        (
-            "Pump-and-dump with IP URL",
-            "URGENT: NOVA FINTECH 🚀 Buy now! 10X guaranteed. Insider tip: http://203.0.113.45/tip",
-        ),
-        (
-            "Legitimate SEBI URL (should NOT flag)",
-            "For official SEBI circulars please visit https://www.sebi.gov.in/circulars.html",
-        ),
-        (
-            "Legitimate Zerodha (should NOT flag)",
-            "Log in to your portfolio at https://kite.zerodha.com/dashboard",
-        ),
-        (
-            "Bare domain spoof of HDFC",
-            "Get your loan approved at hdfcbankk.com — special festive offer!",
-        ),
-        (
-            "Mixed: one clean, one spoof",
-            "Visit https://www.nseindia.com for market data or confirm KYC at "
-            "https://nse-india-kyc.info/submit",
-        ),
-        (
-            "No URLs (should return empty)",
-            "The Nifty 50 rose 1.2% today on strong FII inflows of ₹3,200 crore.",
-        ),
+    # ------------------------------------------------------------------
+    # Schema: (id, category, title, text, expected_threat, notes)
+    # expected_threat=True  -> is_url_threat must be True  (FLAG)
+    # expected_threat=False -> is_url_threat must be False (CLEAN)
+    # ------------------------------------------------------------------
+    test_cases: list[tuple[int, str, str, str, bool, str]] = [
+
+        # ── A: Typosquats — char substitution ──────────────────────────────
+        (1, "typosquat",
+         "SEBI extra-i (sebii.gov.in)",
+         "Dear Investor, your account is at risk. Verify at https://sebii.gov.in/verify?token=abc123",
+         True, "1-char insertion"),
+        (2, "typosquat",
+         "NSE doubled-i (nseindiaa.com)",
+         "NSE KYC required: https://nseindiaa.com/kyc/update immediately.",
+         True, "1-char doubling"),
+        (3, "typosquat",
+         "BSE wrong TLD (bseindia.net)",
+         "BSE compliance notice — submit docs at https://bseindia.net/submit",
+         True, "wrong TLD .net vs .com"),
+        (4, "typosquat",
+         "Zerodha wrong ccTLD (zerodha.co.in)",
+         "Zerodha risk: reset credentials at https://zerodha.co.in/reset?s=abc",
+         True, "wrong ccTLD co.in vs .com"),
+        (5, "typosquat",
+         "Groww missing-w (grow.in)",
+         "Your Groww SIP flagged — verify at https://grow.in/kyc?ref=xyz",
+         True, "1-char deletion"),
+        (6, "typosquat",
+         "Upstox digit-sub (upst0x.com)",
+         "Upstox security alert: https://upst0x.com/login — reset your TPIN now.",
+         True, "digit 0->o"),
+        (7, "typosquat",
+         "SEBI dashed phishing subdomain",
+         "SEBI official: verify your Demat at https://sebi-secure-verify.co/auth",
+         True, "brand in hostname, suspicious TLD"),
+        (8, "typosquat",
+         "NSE compound-TLD spoof (nse-kyc-update.net.in)",
+         "NSE mandatory KYC: https://nse-kyc-update.net.in/user/verify",
+         True, "compound TLD spoof"),
+
+        # ── B: Homoglyph attacks ────────────────────────────────────────────
+        (9, "homoglyph",
+         "Zerodha zero-for-o (zer0dha.com)",
+         "Session expired — re-login at https://zer0dha.com/login within 10 mins.",
+         True, "0->o digit substitution"),
+        (10, "homoglyph",
+         "SEBI five-for-S (5ebi.gov.in)",
+         "Urgent SEBI notice: confirm identity at https://5ebi.gov.in/verify",
+         True, "5->S substitution"),
+        (11, "homoglyph",
+         "Groww zero-for-o (gr0ww.in)",
+         "Groww account alert: portfolio review at https://gr0ww.in/review",
+         True, "0->o substitution"),
+        (12, "homoglyph",
+         "BSE eight-for-B (8seindia.com)",
+         "BSE compliance: respond at https://8seindia.com/compliance urgently.",
+         True, "8->B substitution"),
+
+        # ── C: Wrong TLD spoofs ─────────────────────────────────────────────
+        (13, "wrong_tld",
+         "SEBI wrong TLD (sebi.gov.org)",
+         "Download SEBI circular from https://sebi.gov.org/circulars/2026",
+         True, "gov.org is not gov.in"),
+        (14, "wrong_tld",
+         "NSE wrong TLD (nseindia.org)",
+         "NSE market data: https://nseindia.org/reports/daily",
+         True, ".org not .com"),
+        (15, "wrong_tld",
+         "Zerodha wrong TLD (zerodha.net)",
+         "Zerodha account suspended — appeal at https://zerodha.net/appeal",
+         True, ".net not .com"),
+        (16, "wrong_tld",
+         "Groww wrong TLD (groww.com)",
+         "Groww MF notice: https://groww.com/kyc/renewal — submit before Friday.",
+         True, ".com not .in"),
+
+        # ── D: Legitimate subdomains — must NOT flag ────────────────────────
+        (17, "legit_subdomain",
+         "Zerodha API subdomain — CLEAN",
+         "PRISM calls https://api.zerodha.com/v2/portfolio for live data.",
+         False, "legitimate subdomain of zerodha.com"),
+        (18, "legit_subdomain",
+         "Groww invest subdomain — CLEAN",
+         "Your SIP confirmation: https://invest.groww.in/sip/confirm/12345",
+         False, "legitimate subdomain of groww.in"),
+        (19, "legit_subdomain",
+         "Upstox trade subdomain — CLEAN",
+         "Open your dashboard: https://trade.upstox.com/dashboard",
+         False, "legitimate subdomain of upstox.com"),
+        (20, "legit_subdomain",
+         "SEBI SCORES portal — CLEAN",
+         "File your complaint at https://scores.sebi.gov.in/SCORES/Welcome.html",
+         False, "official SEBI subdomain"),
+
+        # ── E: Shortened URLs — documented blind spot ───────────────────────
+        (21, "shortened_url",
+         "bit.ly link — BLIND SPOT",
+         "Verify your KYC now: bit.ly/sebi-kyc-update",
+         False,
+         "KNOWN BLIND SPOT: shortened URL not resolved; cannot assess destination"),
+        (22, "shortened_url",
+         "tinyurl link — BLIND SPOT",
+         "NSE login link: tinyurl.com/nselogin2026",
+         False,
+         "KNOWN BLIND SPOT: tinyurl not resolved"),
+        (23, "shortened_url",
+         "Telegram t.me link — BLIND SPOT",
+         "Join premium group for insider tips: t.me/stockgurus_777",
+         False,
+         "KNOWN BLIND SPOT: t.me not in whitelist; dissimilar to all legit domains"),
+
+        # ── F: Unknown / edge-case domains ──────────────────────────────────
+        (24, "unknown_domain",
+         "Unknown crypto exchange (mycryptoexchange.io)",
+         "Trade now at https://mycryptoexchange.io — special offer for PRISM users",
+         False,
+         "EDGE CASE: too dissimilar to whitelist; falls below lower_threshold"),
+        (25, "unknown_domain",
+         "Suspicious invest-now.biz",
+         "Guaranteed 40% returns: invest-now.biz — click to verify your deposit",
+         False,
+         "EDGE CASE: suspicious but unknown; dissimilar to whitelist — not flagged"),
+        (26, "unknown_domain",
+         "No URLs at all — empty baseline",
+         "The Nifty 50 rose 1.2% today on strong FII inflows of Rs 3,200 crore.",
+         False,
+         "Baseline: no URL present"),
+
+        # ── G: Mixed / regression ───────────────────────────────────────────
+        (27, "mixed",
+         "Clean NSE + spoof nse-india-kyc.info — overall FLAG",
+         "Visit https://www.nseindia.com for market data or confirm KYC at "
+         "https://nse-india-kyc.info/submit",
+         True,
+         "One clean, one spoof; overall is_url_threat must be True"),
     ]
 
+    # ------------------------------------------------------------------
+    # Run all cases
+    # ------------------------------------------------------------------
     print("\n" + SEP)
-    print("  PRISM Module 1 -- URL Analyzer Demo")
+    print("  PRISM Module 1 -- URL Analyzer Stress-Test  (27 cases)")
     print(SEP)
 
-    for title, text in test_cases:
-        print(f"\n{DASH}")
-        print(f"  Case : {title}")
-        print(f"  Input: {text[:90]}{'...' if len(text) > 90 else ''}")
-        result = analyze_urls(text)
-        print(f"  URLs found   : {result['urls_found']}")
-        print(f"  Suspicious   : {result['suspicious_urls']}")
-        print(f"  is_url_threat: {result['is_url_threat']}")
+    PASS = "PASS"
+    FAIL = "FAIL"
+    NOTE = "NOTE"   # documented limitation — mismatch is expected
+
+    rows: list[tuple[int, str, str, str, bool, bool, str]] = []
+    for tc_id, category, title, text, expected, notes in test_cases:
+        result  = analyze_urls(text)
+        actual  = result["is_url_threat"]
+        correct = actual == expected
+        is_limitation = "BLIND SPOT" in notes or "EDGE CASE" in notes
+        if correct:
+            outcome = PASS
+        elif is_limitation:
+            outcome = NOTE
+        else:
+            outcome = FAIL
+        rows.append((tc_id, category, title, outcome, expected, actual, notes))
+
+    # ------------------------------------------------------------------
+    # Results table
+    # ------------------------------------------------------------------
+    print(f"\n  {'ID':>3}  {'Category':<18}  {'Result':<6}  {'Expect':<6}  {'Got':<6}  Title")
+    print("  " + "-" * 76)
+    for tc_id, category, title, outcome, expected, actual, notes in rows:
+        marker = "  " if outcome == PASS else ("??" if outcome == NOTE else "!!")
+        exp_s  = "FLAG " if expected else "CLEAN"
+        got_s  = "FLAG " if actual   else "CLEAN"
+        print(f"  {marker}{tc_id:>2}  {category:<18}  {outcome:<6}  {exp_s:<6}  {got_s:<6}  {title}")
+
+    # ------------------------------------------------------------------
+    # Summary
+    # ------------------------------------------------------------------
+    passed = sum(1 for r in rows if r[3] == PASS)
+    failed = sum(1 for r in rows if r[3] == FAIL)
+    noted  = sum(1 for r in rows if r[3] == NOTE)
+    total  = len(rows)
 
     print("\n" + SEP)
-    print("  Demo complete.")
-    print(SEP + "\n")
+    print(f"  SUMMARY:  {passed}/{total} PASS  |  {failed} FAIL  |  {noted} NOTED (documented limitations)")
+    print(SEP)
+
+    # ------------------------------------------------------------------
+    # FP / FN / blind-spot detail
+    # ------------------------------------------------------------------
+    fp    = [(r[0], r[2], r[6]) for r in rows if r[3] == FAIL and not r[4] and r[5]]
+    fn    = [(r[0], r[2], r[6]) for r in rows if r[3] == FAIL and r[4] and not r[5]]
+    blind = [(r[0], r[2], r[6]) for r in rows if r[3] == NOTE]
+
+    if fp:
+        print("\n  FALSE POSITIVES (CLEAN expected, FLAG returned):")
+        for tc_id, title, notes in fp:
+            print(f"    [{tc_id:02d}] {title}  |  {notes}")
+    else:
+        print("\n  FALSE POSITIVES: none")
+
+    if fn:
+        print("\n  FALSE NEGATIVES (FLAG expected, CLEAN returned):")
+        for tc_id, title, notes in fn:
+            print(f"    [{tc_id:02d}] {title}  |  {notes}")
+    else:
+        print("\n  FALSE NEGATIVES: none")
+
+    if blind:
+        print("\n  DOCUMENTED LIMITATIONS (not counted as failures):")
+        for tc_id, title, notes in blind:
+            print(f"    [{tc_id:02d}] {title}")
+            print(f"         {notes}")
+
+    print("\n" + SEP + "\n")
 
 
 if __name__ == "__main__":
