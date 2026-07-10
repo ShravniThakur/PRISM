@@ -39,4 +39,4 @@ httpx>=0.27
 
 # Layer 2: Module 1 (FinBERT)
 huggingface_hub
-requests
+requestsgroq
