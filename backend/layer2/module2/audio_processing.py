@@ -16,8 +16,9 @@ class AudioProcessor:
             return None
             
         try:
-            # Load audio using librosa
-            X, fs = librosa.load(audio_path, sr=self.sample_rate)
+            # Load audio using librosa, limit to max_duration_sec to prevent OOM
+            max_duration = self.max_samples / self.sample_rate
+            X, fs = librosa.load(audio_path, sr=self.sample_rate, duration=max_duration)
             
             return X
             

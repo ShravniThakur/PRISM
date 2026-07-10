@@ -17,7 +17,7 @@ audio_processor = AudioProcessor()
 scoring_engine = DeepfakeScoringEngine()
 
 @router.post("/media")
-async def analyze_media_endpoint(file: UploadFile = File(...)):
+def analyze_media_endpoint(file: UploadFile = File(...)):
     """
     Receives an uploaded media file (.mp4, .wav).
     1. Splits video and audio.
@@ -65,5 +65,10 @@ async def analyze_media_endpoint(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
     
     finally:
-        # Cleanup temporary files (Optional, but good practice)
-        pass
+        # Cleanup temporary files to prevent disk exhaustion
+        if os.path.exists(file_location):
+            os.remove(file_location)
+        if 'media_paths' in locals() and media_paths.get("audio_only"):
+            audio_path = media_paths["audio_only"]
+            if os.path.exists(audio_path):
+                os.remove(audio_path)
