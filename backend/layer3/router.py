@@ -17,7 +17,7 @@ class ScoreRequest(BaseModel):
     is_authenticated_sender: int
 
 @router.post("/score")
-async def score_endpoint(request: ScoreRequest):
+def score_endpoint(request: ScoreRequest):
     """
     Accepts raw features from all PRISM microservices, dynamically looks up
     the domain age via WHOIS, and predicts the final threat classification.
