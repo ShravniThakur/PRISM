@@ -34,20 +34,20 @@ PRISM is designed as a **Dual-Layered System** utilizing independent microservic
 **Purpose:** Analyze unauthenticated or suspicious media for malicious intent, deepfake artifacts, and synthetic generation.
 
 ### Module 1: Text Analysis (Phishing / Manipulation)
-*   **Model:** Fine-Tuned Llama 3 (8B) or Mistral (7B).
-*   **Training Data:** A custom dataset combining the Enron Phishing dataset, HuggingFace Financial PhraseBank, and synthetic financial scams generated via LLM.
+*   **Model:** Fine-Tuned `FinBERT` (`ProsusAI/finbert`) converted into a binary sequence classifier (`SAFE=0`, `THREAT=1`).
+*   **Training Data:** A custom dataset combining `Ling.csv` (phishing), `Nigerian_Fraud.csv` (advance-fee fraud), HuggingFace `FinancialPhraseBank` (safe financial news), and highly-localized synthetic Indian financial scams generated via LLM.
 *   **Output:** `text_threat_score` (0.0 to 1.0) indicating manipulative, high-pressure, or fraudulent intent.
 
-### Module 2: Vision Analysis & OCR (Video/Image Deepfakes & Cheapfakes)
+### Module 2: 
+
+#### Vision Analysis & OCR (Video/Image Deepfakes & Cheapfakes)
 *   **Pre-Processing:** 
     *   `FFmpeg` to split streams.
-    *   `OpenCV` to extract frames.
-    *   **OCR (Optical Character Recognition):** Run `Tesseract-OCR` or `EasyOCR` on the frames to extract any text overlaid on the video (e.g., scam text added by hackers). This extracted text is passed directly into **Module 1** for intent analysis.
-    *   Face-cropper to isolate the subject.
-*   **Model:** `video_deepfake_siglip.safetensors` (Hugging Face) OR `XceptionNet` (FaceForensics++ baseline).
-*   **Output:** `video_fake_score` (0.0 to 1.0) based on visual artifacts and blending inconsistencies.
+    *   **OCR (Optical Character Recognition):** Run `Tesseract-OCR` on OpenCV-extracted frames using Otsu's binarization to extract any text overlaid on the video (e.g., scam text added by hackers). This extracted text is passed directly into **Module 1** for intent analysis.
+*   **Model:** `DeepGuard (MS-EffGCViT)` natively processes the video stream (handles its own internal YOLO face detection; no external cropping required).
+*   **Output:** `video_fake_score` (0.0 to 1.0) based on spatiotemporal visual artifacts and blending inconsistencies.
 
-### Module 3: Audio Analysis (Synthetic Voice)
+#### Audio Analysis (Synthetic Voice)
 *   **Model:** `wav2vec2-deepfake-voice-detector` (Hugging Face Wav2Vec2 Architecture).
 *   **The Logic:** Analyzes the raw 16kHz audio waveform directly using a pre-trained Transformer architecture. Wav2Vec2 is vastly superior for production environments because it is highly robust against video compression (unlike older models which fail on WhatsApp or web-compressed `.mov`/`.mp4` audio).
 *   **Output:** `audio_fake_score` (0.0 to 1.0) detecting AI-generated acoustic anomalies.

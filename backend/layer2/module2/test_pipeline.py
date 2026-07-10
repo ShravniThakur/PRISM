@@ -22,10 +22,9 @@ def run_test(video_path):
     if paths.get("has_video"):
         print("2. Running Vision & OCR...")
         v_data = vision.extract_features(paths["video_only"])
-        print(f"   - Extracted {len(v_data['face_frames'])} face frames.")
-        print(f"   - OCR Text: {v_data['ocr_text']}")
+        print(f"   - OCR Text: {v_data.get('ocr_text', '')}")
         print("3. Scoring Video...")
-        v_score = scorer.score_video_faces(v_data["face_frames"])
+        v_score = scorer.score_video(paths["video_only"])
         print(f"   - Video Fake Score: {v_score:.4f}")
     
     if paths.get("has_audio"):
@@ -37,6 +36,7 @@ def run_test(video_path):
             print(f"   - Audio Fake Score: {a_score:.6f}")
 
 if __name__ == "__main__":
-    # Test on real and fake videos
-    run_test("test/real.mov")
-    run_test("test/fake.mov")
+    # Test on the western benchmark videos
+    run_test("sample_videos/western_real.mp4")
+    run_test("sample_videos/western_fake.mp4")
+    

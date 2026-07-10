@@ -42,17 +42,36 @@ Here is exactly what every file and folder inside `app/` is doing:
 *   **`text_hash.py` (The "Dual-Lock" System)**: Uses `TLSH` for a semantic text fingerprint. However, fuzzy hashing alone is dangerous because swapping a single URL barely changes the hash. To fix this, it actively extracts **Critical Tokens** (URLs, account numbers) and creates a strict mathematical lock on them alongside the fuzzy hash. If a hacker changes a single letter in a URL, the lock shatters and PRISM instantly flags it as Phishing!
 *   **`image_hash.py`**: Calculates a `pHash` (Perceptual Hash) for images to survive compression.
 *   **`video_hash.py`**: Extracts frames and calculates a temporal `pHash` fingerprint for video streams.
+## 📂 File Architecture
+Here is exactly what every file and folder inside `app/` is doing:
 
-## Setup
+### ⚙️ The Core Server
+*   **`main.py`**: The entry point. It boots up the FastAPI web server and mounts all the API routes.
+*   **`config.py`**: The "Control Center". Stores sensitivity thresholds (e.g., how different a video's pixels can be before it's flagged as a Deepfake rather than WhatsApp compression).
 
-```bash
-cd backend/layer1
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
-```
+### 🗄️ The Database Layer
+*   **`db.py`**: Connects to a local SQLite database to safely store the registry of trusted entities.
+*   **`models.py`**: Defines the database tables using SQLAlchemy (`Entity` and `SignedAsset`).
+*   **`schemas.py`**: Pydantic models that strictly validate all incoming JSON data to prevent malformed requests.
 
-## Run
+### 🌐 The API Endpoints (`routers/` folder)
+*   **`entities.py`**: Endpoints to register trusted organizations and store their Public Keys.
+*   **`sign.py`**: Endpoints for entities to publish a new video (calculates fingerprint and stores cryptographic signature).
+*   **`verify.py`**: **The core verification endpoint.** Takes a suspicious forwarded video, calculates its fingerprint, and checks the database for a valid signature.
 
+### 🔐 The Cryptography (`crypto/` folder)
+*   **`keys.py`**: Uses `Ed25519` asymmetric cryptography to generate Public and Private key pairs.
+*   **`signing.py`**: The mathematical logic to verify a cryptographic signature against a public key.
+
+### 🧠 The Fuzzy Hashers (`hashing/` folder)
+*   **`text_hash.py` (The "Dual-Lock" System)**: Uses `TLSH` for a semantic text fingerprint. However, fuzzy hashing alone is dangerous because swapping a single URL barely changes the hash. To fix this, it actively extracts **Critical Tokens** (URLs, account numbers) and creates a strict mathematical lock on them alongside the fuzzy hash. If a hacker changes a single letter in a URL, the lock shatters and PRISM instantly flags it as Phishing!
+*   **`image_hash.py`**: Calculates a `pHash` (Perceptual Hash) for images to survive compression.
+*   **`video_hash.py`**: Extracts frames and calculates a temporal `pHash` fingerprint for video streams.
+
+
+## Generating Signatures Manually (For Swagger UI Testing)
+If you are testing the API using the Swagger UI, you will need to generate cryptographic signatures locally on your machine (since Private Keys should never be sent over the internet).
+Once you receive the `payload_b64` from the `/sign/prepare` endpoint, run this command in your terminal to generate the final signature:
 ```bash
 .venv/bin/python scripts/seed_demo.py        # optional: demo entities + signed advisory
 .venv/bin/uvicorn app.main:app --reload      # http://127.0.0.1:8000/docs
@@ -108,31 +127,6 @@ It allows PRISM to verify SEBI's identity with 100% certainty, without SEBI ever
 Accepted uploads: raw text, `.txt`, `.eml`, `.pdf` (text is extracted),
 images (`.png .jpg .webp ...`), video (`.mp4 .mov ...`). Ambiguous files can
 be disambiguated with a `media_type=text|image|video` form field.
-
-## End-to-end demo (curl)
-
-```bash
-# 1. Register an entity (save the private key!)
-curl -s -X POST localhost:8000/entities -H 'content-type: application/json' \
-  -d '{"name": "SEBI", "type": "regulator"}' > entity.json
-python3 -c "import json;open('sebi.pem','w').write(json.load(open('entity.json'))['private_key_pem'])"
-
-# 2. Prepare: get the payload to sign
-curl -s -X POST localhost:8000/sign/prepare -F 'text=<official announcement text>' > prep.json
-
-# 3. Sign locally (private key never leaves your machine)
-SIG=$(python3 scripts/sign_payload.py --key sebi.pem \
-      --payload-b64 "$(python3 -c "import json;print(json.load(open('prep.json'))['payload_b64'])")")
-
-# 4. Submit the signed record
-curl -s -X POST localhost:8000/sign/submit -H 'content-type: application/json' \
-  -d "{\"entity_id\": \"$(python3 -c "import json;print(json.load(open('entity.json'))['id'])")\",
-       \"payload_b64\": $(python3 -c "import json;print(json.dumps(json.load(open('prep.json'))['payload_b64']))"),
-       \"signature_b64\": \"$SIG\", \"title\": \"Official announcement\"}"
-
-# 5. Verify a forwarded copy
-curl -s -X POST localhost:8000/verify -F 'text=<the forwarded version>'
-```
 
 ## Tuning
 

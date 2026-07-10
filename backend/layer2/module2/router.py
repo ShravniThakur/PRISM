@@ -41,11 +41,10 @@ async def analyze_media_endpoint(file: UploadFile = File(...)):
         if media_paths.get("has_video"):
             print("Processing Vision Pipeline...")
             vision_data = vision_processor.extract_features(media_paths["video_only"])
-            extracted_text = vision_data["ocr_text"]
-            face_frames = vision_data["face_frames"]
+            extracted_text = vision_data.get("ocr_text", "")
             
-            # Score the faces
-            vision_score = scoring_engine.score_video_faces(face_frames)
+            # Score the video natively using DeepGuard
+            vision_score = scoring_engine.score_video(media_paths["video_only"])
             
         # 4. Audio Pipeline
         if media_paths.get("has_audio"):

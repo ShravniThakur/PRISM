@@ -39,13 +39,6 @@ module1/
 
 ## Quick Start
 
-### 1. Install Dependencies
-
-```bash
-pip install pandas transformers datasets scikit-learn torch
-# GPU recommended for training:
-pip install torch --index-url https://download.pytorch.org/whl/cu121
-```
 
 ### 2. Generate & Prepare the Dataset
 

@@ -15,13 +15,14 @@ class MediaIngestor:
         filename = os.path.basename(file_path)
         base_name = os.path.splitext(filename)[0]
         
-        video_only_path = os.path.join(self.upload_dir, f"{base_name}_video.mp4")
+        # We no longer split the video, we just pass the original path to the vision processor.
+        # But we still extract the audio.
         audio_only_path = os.path.join(self.upload_dir, f"{base_name}_audio.wav")
         
-        # Split Video Stream (Strip audio)
-        video_cmd = [
-            "ffmpeg", "-y", "-i", file_path, 
-            "-c:v", "copy", "-an", video_only_path
+        # Probe for video stream
+        probe_cmd = [
+            "ffprobe", "-v", "error", "-select_streams", "v:0", 
+            "-show_entries", "stream=codec_type", "-of", "csv=p=0", file_path
         ]
         
         # Split Audio Stream (Strip video, convert to 16kHz for RawNet2)
@@ -32,17 +33,17 @@ class MediaIngestor:
         ]
         
         try:
-            # We run both ffmpeg commands suppressing output to keep the terminal clean
-            subprocess.run(video_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-            has_video = True
-        except subprocess.CalledProcessError:
+            output = subprocess.check_output(probe_cmd, stderr=subprocess.DEVNULL).decode().strip()
+            has_video = (output == "video")
+            video_only_path = file_path if has_video else None
+        except (subprocess.CalledProcessError, FileNotFoundError):
             has_video = False
             video_only_path = None
             
         try:
             subprocess.run(audio_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
             has_audio = True
-        except subprocess.CalledProcessError:
+        except (subprocess.CalledProcessError, FileNotFoundError):
             has_audio = False
             audio_only_path = None
             

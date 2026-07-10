@@ -1,7 +1,42 @@
-fastapi
-uvicorn
-pydantic
-huggingface_hub
+# Unified PRISM Backend Requirements
+
+# Core API & Server
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+pydantic>=2.0
 python-dotenv
+
+# Layer 1: Zero-Trust Auth
+sqlalchemy>=2.0
+cryptography>=42.0
+py-tlsh>=4.7
+imagehash>=4.3
+Pillow>=10.0
+pdfplumber>=0.11
+
+# Layer 2: AI Models (Text, Vision, Audio)
+torch
+torchvision
+torchaudio
+transformers
+librosa
+opencv-python>=4.9
+pytesseract
+facenet-pytorch
+numpy>=1.26
+ultralytics
+
+# Layer 3: Central Brain
+pandas
+scikit-learn
+python-whois
+joblib
+
+# Dev / Testing
+pytest>=8.0
+httpx>=0.27
+
+# Layer 2: Module 1 (FinBERT)
+huggingface_hub
 requests
-python-multipart
