@@ -29,7 +29,7 @@ export const api = {
             return res.data;
         } catch (e) {
              console.error("Layer 2 Media API Failed", e);
-             return { video_fake_score: 0, audio_fake_score: 0 };
+             return { video_fake_score: 0, audio_fake_score: 0, segmented_video_scores: [], segmented_audio_scores: [] };
         }
     },
     
@@ -39,7 +39,7 @@ export const api = {
             return res.data;
         } catch (e) {
             console.error("Layer 2 Text API Failed", e);
-            return { threat_score_text: 0 };
+            return { final_text_score: 0, segmented_text_scores: [] };
         }
     },
     
@@ -50,6 +50,9 @@ export const api = {
         domain: string | null;
         is_authenticated_sender: number;
         raw_text: string | null;
+        segmented_text_scores: number[];
+        segmented_video_scores: number[];
+        segmented_audio_scores: number[];
     }) => {
         try {
             const res = await axios.post(`${LAYER3_API}/brain/score`, payload);

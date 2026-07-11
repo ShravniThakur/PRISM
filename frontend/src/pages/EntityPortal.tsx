@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api';
-import { UploadCloud, ShieldCheck, KeyRound, CheckCircle2, UserPlus, FileSignature, LogIn, Key, List, Eye, EyeOff, AlertTriangle, LogOut } from 'lucide-react';
+import { UploadCloud, ShieldCheck, KeyRound, CheckCircle2, UserPlus, FileSignature, Key, List, Eye, AlertTriangle, LogOut } from 'lucide-react';
 import { ed25519 } from '@noble/curves/ed25519.js';
 import { Link } from 'react-router-dom';
 
@@ -144,20 +144,20 @@ export default function EntityPortal() {
       }
   };
 
-  const fetchAssets = async () => {
-      if (!loggedInEntity) return;
-      setAssetsLoading(true);
-      try {
-          const res = await api.getSignedAssets(loggedInEntity.id);
-          setAssets(res);
-      } catch(e) {
-          console.error(e);
-      } finally {
-          setAssetsLoading(false);
-      }
-  };
-
   useEffect(() => {
+      const fetchAssets = async () => {
+          if (!loggedInEntity) return;
+          setAssetsLoading(true);
+          try {
+              const res = await api.getSignedAssets(loggedInEntity.id);
+              setAssets(res);
+          } catch(e) {
+              console.error(e);
+          } finally {
+              setAssetsLoading(false);
+          }
+      };
+
       if (activeTab === 'ASSETS' && loggedInEntity) {
           fetchAssets();
       }

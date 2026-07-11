@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Activity, Clock, Shield } from 'lucide-react';
+import { Activity, Clock } from 'lucide-react';
 
 export default function Sidebar() {
   const location = useLocation();
