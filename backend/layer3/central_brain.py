@@ -44,11 +44,12 @@ class CentralBrain:
                 - classification (str, "Safe" or "Malicious")
         """
         # Format as pandas DataFrame to match training feature names
+        ml_domain_age = 365 if domain_age_days == -1 else domain_age_days
         features = pd.DataFrame([{
             'text_threat_score': text_score,
             'video_fake_score': video_score,
             'audio_fake_score': audio_score,
-            'domain_age_days': domain_age_days,
+            'domain_age_days': ml_domain_age,
             'is_authenticated_sender': is_authenticated_sender
         }])
         

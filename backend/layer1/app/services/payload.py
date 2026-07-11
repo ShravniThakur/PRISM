@@ -5,7 +5,7 @@ import json
 # under the version they were created with.
 PAYLOAD_VERSION = 1
 
-MEDIA_TYPES = {"text", "image", "video"}
+MEDIA_TYPES = {"text", "image", "video", "audio"}
 
 
 def build_payload(media_type: str, algorithm: str, hashes: list[str]) -> dict:

@@ -5,11 +5,12 @@ import os
 
 from fastapi import HTTPException, UploadFile
 
-from ..hashing import image_hash, text_hash, video_hash
+from ..hashing import image_hash, text_hash, video_hash, audio_hash
 
 TEXT_EXTENSIONS = {".txt", ".md"}
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"}
 VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".aac", ".ogg", ".flac"}
 
 
 async def read_input(
@@ -35,7 +36,7 @@ async def read_input(
     if suffix == ".pdf":
         return "text", _extract_pdf(data), suffix
 
-    if media_type in {"text", "image", "video"}:
+    if media_type in {"text", "image", "video", "audio"}:
         resolved = media_type
     elif suffix in TEXT_EXTENSIONS:
         resolved = "text"
@@ -43,6 +44,8 @@ async def read_input(
         resolved = "image"
     elif suffix in VIDEO_EXTENSIONS:
         resolved = "video"
+    elif suffix in AUDIO_EXTENSIONS:
+        resolved = "audio"
     else:
         content_type = file.content_type or ""
         if content_type.startswith("text/"):
@@ -51,6 +54,8 @@ async def read_input(
             resolved = "image"
         elif content_type.startswith("video/"):
             resolved = "video"
+        elif content_type.startswith("audio/"):
+            resolved = "audio"
         else:
             raise HTTPException(
                 status_code=400,
@@ -76,6 +81,8 @@ def compute_hashes(
             return image_hash.compute(content)
         if media_type == "video":
             return video_hash.compute(content, suffix)
+        if media_type == "audio":
+            return audio_hash.compute(content, suffix)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except Exception:

@@ -11,14 +11,14 @@ def get_domain_age_days(domain: str) -> int:
     If the lookup fails or the date is missing, defaults to 365 (neutral age).
     """
     if not domain:
-        return 0
+        return -1
         
     try:
         w = whois.whois(domain)
         creation_date = w.creation_date
         
         if not creation_date:
-            return 0
+            return -1
             
         # whois can sometimes return a list of dates
         if isinstance(creation_date, list):
@@ -28,8 +28,8 @@ def get_domain_age_days(domain: str) -> int:
         return max(0, age)
         
     except Exception as e:
-        log.warning(f"WHOIS lookup failed for {domain}: {e}. Defaulting to 0 days.")
-        return 0
+        log.warning(f"WHOIS lookup failed for {domain}: {e}. Defaulting to -1 (N/A).")
+        return -1
 
 if __name__ == "__main__":
     print(f"google.com age: {get_domain_age_days('google.com')} days")

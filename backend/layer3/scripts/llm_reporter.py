@@ -24,28 +24,33 @@ def generate_threat_report(text_score: float, video_score: float, audio_score: f
     prompt = f"""You are PRISM, an elite cybersecurity AI. Analyze the following threat signals and generate a concise, highly professional 2-paragraph threat report for a retail investor. 
     
     Threat Signals:
-    - Overall Threat Score: {final_score:.2f} (0=Safe, 1=Malicious)
-    - Video Deepfake Score: {video_score:.2f}
-    - Audio Deepfake Score: {audio_score:.2f}
-    - Domain Age: {domain_age} days
+    - Overall Threat Score: {final_score:.2f} (0=Safe, 100=Malicious)
+    - Video Deepfake Probability: {video_score:.2f} (0.00 = Authentic, 1.00 = Fake)
+    - Audio Deepfake Probability: {audio_score:.2f} (0.00 = Authentic, 1.00 = Fake)
+    - Domain Age: {f"{domain_age} days" if domain_age != -1 else "N/A (No Domain Provided)"}
     - Cryptographically Authenticated: {"Yes" if is_authenticated else "No"}
     {text_analysis_instructions}
     
     Instructions:
     1. Do not greet the user. Start the report immediately.
-    2. Write exactly two paragraphs. 
+    2. Write exactly two paragraphs. Do NOT include titles or markdown headers like "**Threat Report**" or "**Actionable Advice**".
     3. Paragraph 1: Give the final verdict and summarize the most critical factors that led to this score (e.g., "This asset has been flagged as a critical threat due to...").
     4. Paragraph 2: Provide actionable advice on what the investor should do (e.g., "Do not click any links...").
     5. Maintain a cold, authoritative, cybersecurity tone.
+    6. CRITICAL: If a specific sub-score (like Video Deepfake) is high, but the Overall Threat Score is low, you MUST explicitly explain this discrepancy in the first paragraph. Explain that while the video/audio may have synthetic artifacts, the overall threat remains low because the other modalities (text, audio, URLs) showed zero malicious intent.
     """
     
     try:
         completion = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3,
             max_tokens=500
         )
-        return completion.choices[0].message.content
+        content = completion.choices[0].message.content
+        # Hard-remove any headers if the LLM disobeys
+        content = content.replace('**Threat Report**\n\n', '').replace('**Actionable Advice**\n\n', '')
+        content = content.replace('**Threat Report**', '').replace('**Actionable Advice**', '')
+        return content.strip()
     except Exception as e:
         return f"LLM Threat Report generation failed: {str(e)}"

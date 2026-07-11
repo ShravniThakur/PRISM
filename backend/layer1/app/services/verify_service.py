@@ -3,7 +3,7 @@ import json
 from sqlalchemy.orm import Session
 
 from ..crypto import signing
-from ..hashing import image_hash, text_hash, video_hash
+from ..hashing import image_hash, text_hash, video_hash, audio_hash
 from ..models import SignedAsset
 from . import registry
 
@@ -11,6 +11,7 @@ _COMPARATORS = {
     "text": text_hash.compare,
     "image": image_hash.compare,
     "video": video_hash.compare,
+    "audio": audio_hash.compare,
 }
 
 

@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --color-prism-cyan: #00F0FF;
+  --color-prism-dark: #0A0F16;
+  --color-prism-panel: #111827;
+  --color-prism-alert: #EF4444;
+}
+
+body {
+  background-color: var(--color-prism-dark);
+  color: white;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(17, 24, 39, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+}

@@ -49,10 +49,19 @@ def analyze_media_endpoint(file: UploadFile = File(...)):
         # 4. Audio Pipeline
         if media_paths.get("has_audio"):
             print("Processing Audio Pipeline...")
-            audio_tensor = audio_processor.extract_features(media_paths["audio_only"])
+            audio_path = media_paths["audio_only"]
+            audio_tensor = audio_processor.extract_features(audio_path)
             
             # Score the audio
             audio_score = scoring_engine.score_audio(audio_tensor)
+            
+            # Transcribe the audio
+            audio_transcript = audio_processor.transcribe(audio_path)
+            if audio_transcript:
+                if extracted_text:
+                    extracted_text += "\n" + audio_transcript
+                else:
+                    extracted_text = audio_transcript
             
         return {
             "status": "success",

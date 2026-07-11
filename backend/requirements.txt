@@ -26,6 +26,8 @@ pytesseract
 facenet-pytorch
 numpy>=1.26
 ultralytics
+deepguard
+albumentations
 
 # Layer 3: Central Brain
 pandas
@@ -39,4 +41,5 @@ httpx>=0.27
 
 # Layer 2: Module 1 (FinBERT)
 huggingface_hub
-requestsgroq
+requests
+groq

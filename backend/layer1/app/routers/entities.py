@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..models import Entity
-from ..schemas import EntityCreate, EntityCreated, EntityOut, RotateOut
+from ..schemas import EntityCreate, EntityCreated, EntityOut, RotateOut, SignedAssetOut
 from ..services import registry
 
 router = APIRouter(prefix="/entities", tags=["entities"])
@@ -30,6 +30,22 @@ def get_entity(entity_id: str, db: Session = Depends(get_db)):
     if entity is None:
         raise HTTPException(status_code=404, detail="entity not found")
     return entity
+
+
+@router.get("/by-name/{name}", response_model=EntityOut)
+def get_entity_by_name(name: str, db: Session = Depends(get_db)):
+    entity = db.query(Entity).filter(Entity.name == name).first()
+    if entity is None:
+        raise HTTPException(status_code=404, detail="entity not found")
+    return entity
+
+
+@router.get("/{entity_id}/assets", response_model=list[SignedAssetOut])
+def get_entity_assets(entity_id: str, db: Session = Depends(get_db)):
+    entity = db.get(Entity, entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail="entity not found")
+    return sorted(entity.signed_assets, key=lambda a: a.signed_at, reverse=True)
 
 
 @router.post("/{entity_id}/keys/rotate", response_model=RotateOut)
