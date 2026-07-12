@@ -6,8 +6,7 @@ from sqlalchemy.orm import Session
 from layer3.central_brain import CentralBrain
 from layer3.scripts.metadata_extractor import get_domain_age_days
 from layer3.scripts.llm_reporter import generate_threat_report
-from layer3.db import get_db
-from layer3.models import ScanHistory
+from layer3.db import get_db, ScanHistory
 
 router = APIRouter(prefix="/brain", tags=["Central Brain Scoring Engine"])
 
@@ -21,6 +20,9 @@ class ScoreRequest(BaseModel):
     domain: Optional[str] = None
     is_authenticated_sender: int
     raw_text: Optional[str] = None
+    segmented_text_scores: list[float] = []
+    segmented_video_scores: list[float] = []
+    segmented_audio_scores: list[float] = []
 
 @router.post("/score")
 def score_endpoint(request: ScoreRequest, db: Session = Depends(get_db)):
@@ -70,6 +72,16 @@ def score_endpoint(request: ScoreRequest, db: Session = Depends(get_db)):
         
         result["scan_id"] = scan_record.id
         result["llm_threat_report"] = llm_report
+        result["timeline_data"] = {
+            "video": request.segmented_video_scores,
+            "audio": request.segmented_audio_scores,
+            "text": request.segmented_text_scores
+        }
+        result["features_used"] = {
+            "video_score": request.video_score,
+            "audio_score": request.audio_score,
+            "text_score": request.text_score
+        }
         
         return result
     except Exception as e:
