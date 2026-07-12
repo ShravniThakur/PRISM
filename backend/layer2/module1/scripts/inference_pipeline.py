@@ -251,7 +251,12 @@ def _fuse_scores(
         fused = max(text_score, BOOST_FLOOR + extra)
     else:
         # -- 2. Weighted blend --
-        fused = (FINBERT_WEIGHT * text_score) + (URL_WEIGHT * url_signal)
+        # If the text is overwhelmingly malicious (like a vishing/OTP stealing script),
+        # do not aggressively penalize it just for lacking a URL.
+        if text_score > 0.85:
+            fused = text_score
+        else:
+            fused = (FINBERT_WEIGHT * text_score) + (URL_WEIGHT * url_signal)
 
     # -- 3. Clamp --
     return round(max(0.01, min(0.99, fused)), 4)
