@@ -8,25 +8,25 @@ def generate_synthetic_rf_data(num_samples=10000):
     # 5 base profiles
     
     # 1. Perfectly Safe (30% of data)
-    # Auth sender, old domain, low scores
+    # Auth sender, old domain (or no URL), low scores
     n1 = int(num_samples * 0.3)
     safe_data = {
         'text_threat_score': np.random.uniform(0.0, 0.2, n1),
         'video_fake_score': np.random.uniform(0.0, 0.1, n1),
         'audio_fake_score': np.random.uniform(0.0, 0.1, n1),
-        'domain_age_days': np.random.randint(365, 3650, n1),
+        'domain_age_days': np.random.choice([np.random.randint(365, 3650), -1], size=n1, p=[0.7, 0.3]),
         'is_authenticated_sender': np.ones(n1),
         'is_malicious': np.zeros(n1)
     }
     
     # 2. Blatant Deepfake (20% of data)
-    # High video/audio, high text, malicious
+    # High video/audio, high text, malicious. Often has NO url (-1) like a WhatsApp forward.
     n2 = int(num_samples * 0.2)
     deepfake_data = {
         'text_threat_score': np.random.uniform(0.6, 1.0, n2),
         'video_fake_score': np.random.uniform(0.8, 1.0, n2),
         'audio_fake_score': np.random.uniform(0.8, 1.0, n2),
-        'domain_age_days': np.random.randint(1, 100, n2),
+        'domain_age_days': np.random.choice([np.random.randint(1, 100), -1], size=n2, p=[0.5, 0.5]),
         'is_authenticated_sender': np.random.choice([0, 1], size=n2, p=[0.8, 0.2]),
         'is_malicious': np.ones(n2)
     }
