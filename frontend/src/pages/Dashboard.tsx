@@ -72,7 +72,10 @@ export default function Dashboard() {
             
             // If the backend transcribed the audio or extracted OCR text, pass it to the linguistic engine!
             if (mediaRes.extracted_ocr_text) {
-                const textRes = await api.analyzeText(mediaRes.extracted_ocr_text);
+                const isPureOCR = !mediaRes.extracted_ocr_text.includes("[AUDIO TRANSCRIPT]:");
+                const sourceType = isPureOCR ? "ocr" : "video_transcript";
+                
+                const textRes = await api.analyzeText(mediaRes.extracted_ocr_text, sourceType);
                 // We combine or take the worst-case text score if both textInput and audio transcript exist
                 txtScore = Math.max(txtScore, textRes.final_text_score || 0);
                 if (textRes.segmented_text_scores && textRes.segmented_text_scores.length > 0) {
@@ -144,10 +147,13 @@ export default function Dashboard() {
   let chartData: any[] = [];
   let chartTitle = 'THREAT PROBABILITY OVER TIME';
 
-  if (timelineDataObj.video && timelineDataObj.video.length > 0) {
+  const videoSum = timelineDataObj.video ? timelineDataObj.video.reduce((a: number, b: number) => a + b, 0) : 0;
+  const audioSum = timelineDataObj.audio ? timelineDataObj.audio.reduce((a: number, b: number) => a + b, 0) : 0;
+
+  if (videoSum > 0) {
       chartData = timelineDataObj.video.map((score: number, idx: number) => ({ name: `0:0${idx*5}`, score: Math.round(score * 100) }));
       chartTitle = 'VIDEO THREAT PROBABILITY TIMELINE';
-  } else if (timelineDataObj.audio && timelineDataObj.audio.length > 0) {
+  } else if (audioSum > 0) {
       chartData = timelineDataObj.audio.map((score: number, idx: number) => ({ name: `0:0${idx*5}`, score: Math.round(score * 100) }));
       chartTitle = 'AUDIO THREAT PROBABILITY TIMELINE';
   } else if (timelineDataObj.text && timelineDataObj.text.length > 0) {

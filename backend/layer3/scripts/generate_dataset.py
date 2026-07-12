@@ -15,7 +15,7 @@ def generate_synthetic_rf_data(num_samples=10000):
         'video_fake_score': np.random.uniform(0.0, 0.1, n1),
         'audio_fake_score': np.random.uniform(0.0, 0.1, n1),
         'domain_age_days': np.random.choice([np.random.randint(365, 3650), -1], size=n1, p=[0.7, 0.3]),
-        'is_authenticated_sender': np.ones(n1),
+        'is_authenticated_sender': np.random.choice([0, 1], size=n1, p=[0.5, 0.5]),
         'is_malicious': np.zeros(n1)
     }
     

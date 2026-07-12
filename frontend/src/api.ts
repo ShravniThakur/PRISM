@@ -33,9 +33,9 @@ export const api = {
         }
     },
     
-    analyzeText: async (text: string) => {
+    analyzeText: async (text: string, sourceType: string = "text") => {
         try {
-            const res = await axios.post(`${LAYER2_API}/analyze/text`, { text });
+            const res = await axios.post(`${LAYER2_API}/analyze/text`, { text, source_type: sourceType });
             return res.data;
         } catch (e) {
             console.error("Layer 2 Text API Failed", e);
@@ -84,9 +84,10 @@ export const api = {
         }
     },
 
-    prepareSignature: async (file: File) => {
+    prepareSignature: async (input: { file?: File, text?: string }) => {
         const formData = new FormData();
-        formData.append("file", file);
+        if (input.file) formData.append("file", input.file);
+        if (input.text) formData.append("text", input.text);
         try {
             const res = await axios.post(`${LAYER1_API}/sign/prepare`, formData);
             return res.data;
