@@ -159,6 +159,6 @@ python train_rf.py
 PRISM allows verified institutions to cryptographically sign their broadcasts. For detailed instructions on how to generate offline signatures using `sebi.pem` and submit them to the PRISM API, please refer to the `backend/readme.md` guide.
 
 ## Links
-- Demo Video : 
+- Demo Video : https://youtu.be/pqwqwOfig3w
 - Finbert Finetuned Drive : https://drive.google.com/drive/folders/1dytp2LX_9GOD1UytXs4GjPckrONBHeR6?usp=drive_link
 - DeepFake Models Drive : https://drive.google.com/drive/folders/1zxCBsAqQWvaaPiq-jqh1QOCB2UA8KsaH?usp=drive_link
