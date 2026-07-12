@@ -47,6 +47,7 @@ export default function EntityPortal() {
   const [pubKeyPem, setPubKeyPem] = useState('');
   const [pubTitle, setPubTitle] = useState('');
   const [pubFile, setPubFile] = useState<File | null>(null);
+  const [pubText, setPubText] = useState('');
   const [pubStatus, setPubStatus] = useState<'IDLE' | 'SIGNING' | 'SUCCESS'>('IDLE');
   const [pubError, setPubError] = useState('');
   const [pubResult, setPubResult] = useState<any>(null);
@@ -93,12 +94,14 @@ export default function EntityPortal() {
       setRegResult(null);
       setRevokeResult(null);
       setPubKeyPem('');
+      setPubText('');
       setAccountMode('SIGN_IN');
       setActiveTab('ACCOUNT');
   };
 
   const handlePublish = async () => {
-      if (!pubFile) return setPubError("Please upload a file to sign.");
+      if (!pubFile && !pubText) return setPubError("Please provide a file or text to sign.");
+      if (pubFile && pubText) return setPubError("Please provide ONLY a file or text, not both.");
       if (!pubKeyPem.includes("BEGIN PRIVATE KEY")) return setPubError("Invalid Private Key PEM format.");
       if (!loggedInEntity) return setPubError("You must be logged in.");
 
@@ -106,7 +109,7 @@ export default function EntityPortal() {
       setPubStatus('SIGNING');
 
       try {
-          const prepRes = await api.prepareSignature(pubFile);
+          const prepRes = await api.prepareSignature({ file: pubFile || undefined, text: pubText || undefined });
           const seed = extractSeedFromPKCS8(pubKeyPem);
           const payloadBytes = Uint8Array.from(atob(prepRes.payload_b64), c => c.charCodeAt(0));
           const signatureBytes = ed25519.sign(payloadBytes, seed);
@@ -428,7 +431,7 @@ export default function EntityPortal() {
                             </div>
                             <br/>
                             <button 
-                                onClick={() => { setPubStatus('IDLE'); setPubFile(null); setPubResult(null); }}
+                                onClick={() => { setPubStatus('IDLE'); setPubFile(null); setPubText(''); setPubResult(null); }}
                                 className="bg-black hover:bg-gray-800 text-white font-black tracking-widest px-8 py-4 rounded-md transition shadow-md"
                             >
                                 SIGN ANOTHER ASSET
@@ -436,23 +439,59 @@ export default function EntityPortal() {
                         </div>
                     ) : (
                         <div className="space-y-8">
-                            <div 
-                              onClick={() => document.getElementById('portal-file-upload')?.click()}
-                              className="w-full h-48 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-cyan-500 hover:bg-cyan-50/50 transition group"
-                            >
-                                <UploadCloud size={48} className="text-gray-400 group-hover:text-cyan-500 mb-4 transition" strokeWidth={1.5} />
-                                <div className="text-gray-500 font-black text-sm tracking-widest group-hover:text-cyan-700 transition">
-                                    {pubFile ? pubFile.name : "SELECT MEDIA TO SIGN"}
+                            <div className="flex gap-6 h-48">
+                                {/* TEXT INPUT SIDE */}
+                                <div className={`w-1/2 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-4 flex flex-col transition focus-within:border-cyan-500 focus-within:bg-cyan-50/50 ${pubFile ? 'opacity-40 pointer-events-none' : ''}`}>
+                                    <textarea 
+                                        className="w-full flex-1 bg-transparent text-gray-900 resize-none outline-none border-none text-sm font-bold leading-relaxed mb-2"
+                                        placeholder="Paste Text to Sign..."
+                                        value={pubText}
+                                        onChange={(e) => setPubText(e.target.value)}
+                                        disabled={pubFile !== null}
+                                    />
                                 </div>
-                                <input 
-                                    type="file" 
-                                    id="portal-file-upload" 
-                                    className="hidden" 
-                                    onChange={(e) => {
-                                        if (e.target.files && e.target.files.length > 0) setPubFile(e.target.files[0]);
-                                    }}
-                                />
+
+                                {/* FILE UPLOAD SIDE */}
+                                <div 
+                                    onClick={() => !pubText && document.getElementById('portal-file-upload')?.click()}
+                                    className={`w-1/2 bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-cyan-500 hover:bg-cyan-50/50 transition group ${pubText ? 'opacity-40 pointer-events-none' : ''}`}
+                                >
+                                    <UploadCloud size={48} className="text-gray-400 group-hover:text-cyan-500 mb-4 transition" strokeWidth={1.5} />
+                                    <div className="text-gray-500 font-black text-sm tracking-widest group-hover:text-cyan-700 transition text-center px-4">
+                                        {pubFile ? pubFile.name : "SELECT MEDIA TO SIGN"}
+                                    </div>
+                                    {pubFile && (
+                                        <div 
+                                            onClick={(e) => { e.stopPropagation(); setPubFile(null); }}
+                                            className="mt-2 text-xs font-bold text-red-500 hover:text-red-700"
+                                        >
+                                            Remove
+                                        </div>
+                                    )}
+                                    <input 
+                                        type="file" 
+                                        id="portal-file-upload" 
+                                        className="hidden" 
+                                        onChange={(e) => {
+                                            if (e.target.files && e.target.files.length > 0) {
+                                                setPubFile(e.target.files[0]);
+                                            }
+                                        }}
+                                    />
+                                </div>
                             </div>
+                            
+                            {/* RESET BUTTON FOR TEXT */}
+                            {pubText && (
+                                <div className="flex justify-end mt-[-1rem]">
+                                    <button 
+                                        onClick={() => setPubText('')}
+                                        className="text-xs font-bold text-red-500 hover:text-red-700 uppercase tracking-widest"
+                                    >
+                                        Clear Text
+                                    </button>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-[10px] font-black tracking-widest text-gray-500 mb-2">ASSET TITLE (OPTIONAL)</label>
