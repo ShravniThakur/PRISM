@@ -92,7 +92,7 @@ export default function Dashboard() {
             text_score: txtScore,
             video_score: vidScore,
             audio_score: audScore,
-            domain: combinedText ? "example.com" : "", // Mock domain, extract proper URL later
+            domain: "", // Pass empty string if no URL is detected
             is_authenticated_sender: authScore,
             raw_text: combinedText || "File uploaded without any textual/spoken content.",
             segmented_text_scores: segTxt,
