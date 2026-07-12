@@ -39,7 +39,7 @@ class AudioProcessor:
         try:
             print(f"Transcribing audio: {audio_path}")
             # Whisper handles internal resampling and duration via the pipeline
-            result = self.stt_pipeline(audio_path)
+            result = self.stt_pipeline(audio_path, chunk_length_s=30, return_timestamps=False)
             return result.get("text", "").strip()
         except Exception as e:
             print(f"Error transcribing audio: {e}")
