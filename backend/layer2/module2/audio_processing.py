@@ -12,17 +12,20 @@ class AudioProcessor:
 
     def extract_features(self, audio_path: str) -> np.ndarray:
         """
-        Reads a wav file, resamples if necessary, and crops it 
-        up to `max_samples`. Returns a 1D numpy array for HF FeatureExtractor.
+        Reads a wav file, crops it up to `max_samples`. 
+        Returns a 1D numpy array for HF FeatureExtractor.
         """
         if not audio_path:
             return None
             
         try:
-            # Load audio using librosa, limit to max_duration_sec to prevent OOM
-            max_duration = self.max_samples / self.sample_rate
-            X, fs = librosa.load(audio_path, sr=self.sample_rate, duration=max_duration)
+            import soundfile as sf
+            X, fs = sf.read(audio_path)
             
+            # Limit to max_duration_sec to prevent OOM
+            if len(X) > self.max_samples:
+                X = X[:self.max_samples]
+                
             return X
             
         except Exception as e:

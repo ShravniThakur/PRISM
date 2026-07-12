@@ -46,16 +46,17 @@ class VisionProcessor:
                 # Convert thresholded image to PIL for Tesseract
                 pil_img = Image.fromarray(thresh)
                 
-                # Use PSM 11 (Sparse text) to find as much text as possible in no particular order
-                custom_config = r'--psm 11'
+                # Use PSM 3 (Fully automatic page segmentation) to reduce random noise from background pixels
+                custom_config = r'--psm 3'
                 text = pytesseract.image_to_string(pil_img, config=custom_config).strip()
                 
                 if text:
-                    # Clean up random Tesseract noise (keep alphanumeric and basic punctuation)
-                    cleaned = re.sub(r'[^a-zA-Z0-9\s.,!?]', '', text)
-                    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-                    if len(cleaned) > 2: # Ignore 1-2 character random noise
-                        ocr_texts.append(cleaned)
+                    for line in text.split('\n'):
+                        # Clean up random Tesseract noise (keep alphanumeric and basic punctuation)
+                        cleaned = re.sub(r'[^a-zA-Z0-9\s.,!?]', '', line)
+                        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+                        if len(cleaned) > 4: # Ignore short random noise
+                            ocr_texts.append(cleaned)
                     
             frame_count += 1
             
