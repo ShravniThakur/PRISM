@@ -51,16 +51,29 @@ export default function Dashboard() {
         let segAud: number[] = [];
         let combinedText = textInput;
 
-        const authRes = await api.verifySignature({ 
-            text: combinedText || undefined, 
-            file: file || undefined 
-        });
-        authScore = authRes.is_authenticated_sender;
+        // Verify Text and File separately because Layer 1 can only hash one media type per request
+        if (combinedText) {
+            const authResText = await api.verifySignature({ text: combinedText });
+            if (authResText.is_authenticated_sender) authScore = 1;
+        }
+        if (file) {
+            const authResFile = await api.verifySignature({ file: file });
+            if (authResFile.is_authenticated_sender) authScore = 1;
+        }
 
+        let extractedDomain = "";
         if (combinedText) {
             const textRes = await api.analyzeText(combinedText);
             txtScore = textRes.final_text_score || 0;
             segTxt = textRes.segmented_text_scores || [];
+            if (textRes.url_analysis?.urls_found?.length > 0) {
+                try {
+                    const parsed = new URL(textRes.url_analysis.urls_found[0]);
+                    extractedDomain = parsed.hostname;
+                } catch (e) {
+                    console.error("Failed to parse URL", e);
+                }
+            }
         }
 
         if (file) {
@@ -81,6 +94,14 @@ export default function Dashboard() {
                 if (textRes.segmented_text_scores && textRes.segmented_text_scores.length > 0) {
                     segTxt = textRes.segmented_text_scores;
                 }
+                if (!extractedDomain && textRes.url_analysis?.urls_found?.length > 0) {
+                    try {
+                        const parsed = new URL(textRes.url_analysis.urls_found[0]);
+                        extractedDomain = parsed.hostname;
+                    } catch (e) {
+                        console.error("Failed to parse URL", e);
+                    }
+                }
                 
                 // Append the transcribed text so the LLM can reference it
                 if (combinedText) {
@@ -95,7 +116,7 @@ export default function Dashboard() {
             text_score: txtScore,
             video_score: vidScore,
             audio_score: audScore,
-            domain: "", // Pass empty string if no URL is detected
+            domain: extractedDomain,
             is_authenticated_sender: authScore,
             raw_text: combinedText || "File uploaded without any textual/spoken content.",
             segmented_text_scores: segTxt,

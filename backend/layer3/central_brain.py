@@ -43,6 +43,23 @@ class CentralBrain:
                 - threat_probability (float, 0-100)
                 - classification (str, "Safe" or "Malicious")
         """
+        
+        # Explicit Override for Authenticated Senders
+        # If the sender is cryptographically verified, it is considered safe
+        # regardless of the text's security vocabulary or media content.
+        if is_authenticated_sender == 1:
+            return {
+                "threat_probability": 0.0,
+                "classification": "Safe",
+                "features_used": {
+                    "text_score": 0.0,
+                    "video_score": 0.0,
+                    "audio_score": 0.0,
+                    "domain_age": domain_age_days,
+                    "is_auth": True
+                }
+            }
+
         # Format as pandas DataFrame to match training feature names
         features = pd.DataFrame([{
             'text_threat_score': text_score,

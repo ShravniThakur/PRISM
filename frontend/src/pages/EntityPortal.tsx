@@ -518,7 +518,7 @@ export default function EntityPortal() {
 
                             <button 
                                 onClick={handlePublish}
-                                disabled={!pubFile || !pubKeyPem || pubStatus === 'SIGNING'}
+                                disabled={(!pubFile && !pubText) || !pubKeyPem || pubStatus === 'SIGNING'}
                                 className="w-full bg-black text-cyan-400 hover:opacity-80 font-black tracking-widest py-4 rounded-md transition disabled:cursor-not-allowed flex justify-center items-center gap-2 shadow-md mt-4"
                             >
                                 {pubStatus === 'SIGNING' ? (

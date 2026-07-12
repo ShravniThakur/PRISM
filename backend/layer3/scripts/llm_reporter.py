@@ -27,7 +27,7 @@ def generate_threat_report(text_score: float, video_score: float, audio_score: f
     - Overall Threat Score: {final_score:.2f} (0=Safe, 100=Malicious)
     - Video Deepfake Probability: {video_score:.2f} (0.00 = Authentic, 1.00 = Fake)
     - Audio Deepfake Probability: {audio_score:.2f} (0.00 = Authentic, 1.00 = Fake)
-    - Domain Age: {f"{domain_age} days" if domain_age != -1 else "N/A (No Domain Provided)"}
+    - Domain Age: {f"{domain_age} days" if domain_age != 99999 else "N/A (No Domain Provided)"}
     - Cryptographically Authenticated: {"Yes" if is_authenticated else "No"}
     {text_analysis_instructions}
     

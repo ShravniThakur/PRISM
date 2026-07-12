@@ -6,11 +6,15 @@ import joblib
 import os
 
 def train_central_brain():
-    data_path = '../data/synthetic_rf_data.csv'
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    data_path = os.path.join(current_dir, '..', 'data', 'synthetic_rf_data.csv')
+    
     if not os.path.exists(data_path):
         raise FileNotFoundError(f"Could not find dataset at {data_path}. Run generate_dataset.py first.")
         
     df = pd.read_csv(data_path)
+    # Filter to ONLY unauthenticated data as requested by the user
+    df = df[df['is_authenticated_sender'] == 0]
     
     # Features and Target
     X = df[['text_threat_score', 'video_fake_score', 'audio_fake_score', 'domain_age_days', 'is_authenticated_sender']]
@@ -34,8 +38,9 @@ def train_central_brain():
     print(classification_report(y_test, y_pred, target_names=['Safe', 'Malicious']))
     
     # Save Model
-    os.makedirs('../models', exist_ok=True)
-    model_path = '../models/rf_model.joblib'
+    models_dir = os.path.join(current_dir, '..', 'models')
+    os.makedirs(models_dir, exist_ok=True)
+    model_path = os.path.join(models_dir, 'rf_model.joblib')
     joblib.dump(rf, model_path)
     print(f"\nModel saved to {model_path}")
 

@@ -8,10 +8,11 @@ log = logging.getLogger("metadata_extractor")
 def get_domain_age_days(domain: str) -> int:
     """
     Query the WHOIS record for the given domain and calculate its age in days.
-    If the lookup fails or the date is missing, defaults to 365 (neutral age).
+    If the lookup fails or the date is missing, defaults to 0 (highly suspicious).
+    If no domain is provided, returns 99999 (safe/no link).
     """
     if not domain:
-        return -1
+        return 99999
         
     try:
         w = whois.whois(domain)
@@ -24,12 +25,14 @@ def get_domain_age_days(domain: str) -> int:
         if isinstance(creation_date, list):
             creation_date = creation_date[0]
             
-        age = (datetime.now() - creation_date).days
+        # Ensure we can subtract timezone-aware datetimes
+        now = datetime.now(creation_date.tzinfo) if creation_date.tzinfo else datetime.now()
+        age = (now - creation_date).days
         return max(0, age)
         
     except Exception as e:
-        log.warning(f"WHOIS lookup failed for {domain}: {e}. Defaulting to -1 (N/A).")
-        return -1
+        log.warning(f"WHOIS lookup failed for {domain}: {e}. Defaulting to 0 (suspicious).")
+        return 0
 
 if __name__ == "__main__":
     print(f"google.com age: {get_domain_age_days('google.com')} days")

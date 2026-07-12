@@ -218,45 +218,18 @@ def _fuse_scores(
     url_is_threat: bool,
     suspicious_url_count: int,
 ) -> float:
-    """
-    Combine the FinBERT text score with the URL threat signal into a
-    single `final_text_score` in [0.0, 1.0].
-
-    Fusion logic (applied in priority order):
-        1. Hard boost: If text_score >= BOOST_TRIGGER and at least one
-           suspicious URL exists, snap final score to >= BOOST_FLOOR.
-           This captures the "phishing text + deceptive link" case with
-           maximum precision.
-        2. Weighted blend: Otherwise, blend text_score with a URL signal
-           (0.0 or 1.0) using FINBERT_WEIGHT / URL_WEIGHT.
-        3. Clamp to [0.01, 0.99] -- never output exactly 0 or 1 to avoid
-           misleading the downstream system.
-
-    Parameters
-    ----------
-    text_score           : Raw FinBERT threat probability (0.0 -- 1.0).
-    url_is_threat        : True if any suspicious URL was found.
-    suspicious_url_count : Number of suspicious URLs detected.
-
-    Returns
-    -------
-    float  Final fused threat score, clamped to [0.01, 0.99].
-    """
     url_signal = 1.0 if url_is_threat else 0.0
 
     # -- 1. Hard boost when both signals agree --
     if url_is_threat and text_score >= BOOST_TRIGGER:
-        # Scale boost floor up slightly per additional suspicious URL (capped)
         extra = min(suspicious_url_count - 1, 3) * 0.01
         fused = max(text_score, BOOST_FLOOR + extra)
     else:
-        # -- 2. Weighted blend --
-        # If the text is overwhelmingly malicious (like a vishing/OTP stealing script),
-        # do not aggressively penalize it just for lacking a URL.
-        if text_score > 0.85:
-            fused = text_score
-        else:
+        # -- 2. Only boost, never penalize for missing URLs --
+        if url_is_threat:
             fused = (FINBERT_WEIGHT * text_score) + (URL_WEIGHT * url_signal)
+        else:
+            fused = text_score
 
     # -- 3. Clamp --
     return round(max(0.01, min(0.99, fused)), 4)
@@ -668,11 +641,9 @@ class TextThreatAnalyzer:
             # ── Assemble output ─────────────────────────────────────────
             
             # Discount segmented scores if OCR noise discount was applied
+            segmented_scores = locals().get('segmented_scores', [])
             if source_type == "ocr" and not url_result["is_url_threat"]:
-                if 'segmented_scores' in locals():
-                    segmented_scores = [s * 0.1 for s in segmented_scores]
-                else:
-                    segmented_scores = []
+                segmented_scores = [s * 0.1 for s in segmented_scores]
                 
             output["final_text_score"]     = final_score
             output["model_confidence"]     = text_score

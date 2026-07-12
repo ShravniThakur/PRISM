@@ -45,9 +45,9 @@ def score_endpoint(request: ScoreRequest, db: Session = Depends(get_db)):
         
         # 3. Generate LLM Threat Report
         llm_report = generate_threat_report(
-            text_score=request.text_score,
-            video_score=request.video_score,
-            audio_score=request.audio_score,
+            text_score=result["features_used"]["text_score"],
+            video_score=result["features_used"]["video_score"],
+            audio_score=result["features_used"]["audio_score"],
             domain_age=domain_age,
             is_authenticated=request.is_authenticated_sender,
             final_score=result["threat_probability"],
@@ -56,9 +56,9 @@ def score_endpoint(request: ScoreRequest, db: Session = Depends(get_db)):
         
         # 4. Save to Database
         scan_record = ScanHistory(
-            text_score=request.text_score,
-            video_score=request.video_score,
-            audio_score=request.audio_score,
+            text_score=result["features_used"]["text_score"],
+            video_score=result["features_used"]["video_score"],
+            audio_score=result["features_used"]["audio_score"],
             is_authenticated_sender=request.is_authenticated_sender,
             domain=request.domain,
             raw_context_text=request.raw_text,
@@ -78,9 +78,10 @@ def score_endpoint(request: ScoreRequest, db: Session = Depends(get_db)):
             "text": request.segmented_text_scores
         }
         result["features_used"] = {
-            "video_score": request.video_score,
-            "audio_score": request.audio_score,
-            "text_score": request.text_score
+            "video_score": result["features_used"]["video_score"],
+            "audio_score": result["features_used"]["audio_score"],
+            "text_score": result["features_used"]["text_score"],
+            "is_auth": bool(request.is_authenticated_sender == 1)
         }
         
         return result
