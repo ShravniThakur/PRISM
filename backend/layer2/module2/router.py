@@ -1,4 +1,7 @@
+from __future__ import annotations
 import os
+import uuid
+import tempfile
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
 import shutil
@@ -25,13 +28,18 @@ def analyze_media_endpoint(file: UploadFile = File(...)):
     3. Runs Deepfake inference on both channels.
     """
     # 1. Save the uploaded file temporarily
-    file_location = os.path.join(ingestor.upload_dir, file.filename)
+    temp_dir = tempfile.mkdtemp()
+    local_ingestor = MediaIngestor(upload_dir=temp_dir)
+    _, ext = os.path.splitext(file.filename)
+    secure_filename = f"{uuid.uuid4().hex}{ext}"
+    file_location = os.path.join(temp_dir, secure_filename)
+    
     with open(file_location, "wb+") as file_object:
         shutil.copyfileobj(file.file, file_object)
         
     try:
         # 2. Split Media
-        media_paths = ingestor.process_upload(file_location)
+        media_paths = local_ingestor.process_upload(file_location)
         
         vision_score = 0.0
         audio_score = 0.0
@@ -44,7 +52,8 @@ def analyze_media_endpoint(file: UploadFile = File(...)):
             extracted_text = vision_data.get("ocr_text", "")
             
             # Score the video natively using DeepGuard
-            vision_score = scoring_engine.score_video(media_paths["video_only"])
+            vid_results = scoring_engine.score_video(media_paths["video_only"])
+            vision_score = vid_results.get("overall_score", 0.0)
             
         # 4. Audio Pipeline
         if media_paths.get("has_audio"):
@@ -53,7 +62,8 @@ def analyze_media_endpoint(file: UploadFile = File(...)):
             audio_tensor = audio_processor.extract_features(audio_path)
             
             # Score the audio
-            audio_score = scoring_engine.score_audio(audio_tensor)
+            aud_results = scoring_engine.score_audio(audio_tensor)
+            audio_score = aud_results.get("overall_score", 0.0)
             
             # Transcribe the audio
             audio_transcript = audio_processor.transcribe(audio_path)
@@ -62,32 +72,12 @@ def analyze_media_endpoint(file: UploadFile = File(...)):
                     extracted_text = "[AUDIO TRANSCRIPT]:\n" + audio_transcript + "\n\n[OCR DATA]:\n" + extracted_text
                 else:
                     extracted_text = "[AUDIO TRANSCRIPT]:\n" + audio_transcript
-            
-        # Ensure we have segmented scores for the timeline graph
-        import random
-        # Base segmentation
-        seg_vid = []
-        if vision_score > 0:
-            for _ in range(5):
-                seg_vid.append(max(0.0, min(1.0, vision_score + random.uniform(-0.1, 0.1))))
-        else:
-            seg_vid = [0.0]*5
-            
-
-        seg_aud = []
-        if audio_score > 0:
-            for _ in range(5):
-                seg_aud.append(max(0.0, min(1.0, audio_score + random.uniform(-0.1, 0.1))))
-        else:
-            seg_aud = [0.0]*5
 
         return {
             "status": "success",
             "video_fake_score": vision_score,
             "audio_fake_score": audio_score,
-            "extracted_ocr_text": extracted_text,
-            "segmented_video_scores": seg_vid,
-            "segmented_audio_scores": seg_aud
+            "extracted_ocr_text": extracted_text
         }
         
     except Exception as e:
@@ -95,9 +85,5 @@ def analyze_media_endpoint(file: UploadFile = File(...)):
     
     finally:
         # Cleanup temporary files to prevent disk exhaustion
-        if os.path.exists(file_location):
-            os.remove(file_location)
-        if 'media_paths' in locals() and media_paths.get("audio_only"):
-            audio_path = media_paths["audio_only"]
-            if os.path.exists(audio_path):
-                os.remove(audio_path)
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)

@@ -7,6 +7,7 @@ touches the PRISM server.
 Usage:
     python scripts/sign_payload.py --key sebi_private.pem --payload-b64 <b64>
 """
+from __future__ import annotations
 import argparse
 import base64
 import pathlib

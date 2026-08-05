@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from layer2.module1.scripts.inference_pipeline import TextThreatAnalyzer

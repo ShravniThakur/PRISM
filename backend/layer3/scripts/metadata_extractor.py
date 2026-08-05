@@ -1,3 +1,4 @@
+from __future__ import annotations
 import whois
 from datetime import datetime
 import logging

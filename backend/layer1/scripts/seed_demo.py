@@ -7,6 +7,7 @@ with scripts/sign_payload.py during a demo.
 Usage:
     python scripts/seed_demo.py
 """
+from __future__ import annotations
 import base64
 import pathlib
 import sys

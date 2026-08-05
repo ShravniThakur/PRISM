@@ -1,3 +1,4 @@
+from __future__ import annotations
 import hashlib
 
 def compute(data: bytes, suffix: str = ".mp3") -> tuple[str, list[str]]:

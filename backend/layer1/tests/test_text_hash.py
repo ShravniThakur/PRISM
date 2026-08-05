@@ -1,3 +1,4 @@
+from __future__ import annotations
 from app.hashing import text_hash
 
 ADVISORY = (

@@ -21,44 +21,15 @@ export const api = {
         }
     },
     
-    analyzeMedia: async (file: File) => {
+    analyzeUnified: async (input: { text?: string; file?: File }) => {
         const formData = new FormData();
-        formData.append("file", file);
+        if (input.text) formData.append("text", input.text);
+        if (input.file) formData.append("file", input.file);
         try {
-            const res = await axios.post(`${LAYER2_API}/analyze/media`, formData);
+            const res = await axios.post(`${LAYER3_API}/brain/orchestrate`, formData);
             return res.data;
         } catch (e) {
-             console.error("Layer 2 Media API Failed", e);
-             return { video_fake_score: 0, audio_fake_score: 0, segmented_video_scores: [], segmented_audio_scores: [] };
-        }
-    },
-    
-    analyzeText: async (text: string, sourceType: string = "text") => {
-        try {
-            const res = await axios.post(`${LAYER2_API}/analyze/text`, { text, source_type: sourceType });
-            return res.data;
-        } catch (e) {
-            console.error("Layer 2 Text API Failed", e);
-            return { final_text_score: 0, segmented_text_scores: [] };
-        }
-    },
-    
-    getFinalScore: async (payload: {
-        text_score: number;
-        video_score: number;
-        audio_score: number;
-        domain: string | null;
-        is_authenticated_sender: number;
-        raw_text: string | null;
-        segmented_text_scores: number[];
-        segmented_video_scores: number[];
-        segmented_audio_scores: number[];
-    }) => {
-        try {
-            const res = await axios.post(`${LAYER3_API}/brain/score`, payload);
-            return res.data;
-        } catch (e) {
-            console.error("Layer 3 Score API Failed", e);
+            console.error("Unified Analysis API Failed", e);
             throw e;
         }
     },

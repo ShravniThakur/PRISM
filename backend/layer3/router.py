@@ -1,4 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends
+from __future__ import annotations
+import os
+import asyncio
+import httpx
+import tempfile
+import shutil
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -10,6 +16,9 @@ from layer3.db import get_db, ScanHistory
 
 router = APIRouter(prefix="/brain", tags=["Central Brain Scoring Engine"])
 
+LAYER1_URL = os.getenv("LAYER1_URL", "http://localhost:8000")
+LAYER2_URL = os.getenv("LAYER2_URL", "http://localhost:8001")
+
 # Initialize Central Brain globally
 brain = CentralBrain()
 
@@ -20,9 +29,168 @@ class ScoreRequest(BaseModel):
     domain: Optional[str] = None
     is_authenticated_sender: int
     raw_text: Optional[str] = None
-    segmented_text_scores: list[float] = []
-    segmented_video_scores: list[float] = []
-    segmented_audio_scores: list[float] = []
+
+@router.post("/orchestrate")
+async def orchestrate_endpoint(
+    file: Optional[UploadFile] = File(None),
+    text: Optional[str] = Form(None),
+    domain: Optional[str] = Form(None),
+    entity_id: Optional[str] = Form(None),
+    signature: Optional[str] = Form(None),
+    db: Session = Depends(get_db)
+):
+    if not file and not text:
+        raise HTTPException(status_code=400, detail="Must provide file or text")
+
+    temp_file_path = None
+    open_files = []
+    
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            tasks = []
+            
+            # 1. Layer 1 Auth
+            auth_data = {}
+            if text:
+                auth_data["text"] = text
+            if entity_id:
+                auth_data["entity_id"] = entity_id
+            if signature:
+                auth_data["signature_b64"] = signature
+    
+            auth_files = None
+            if file:
+                # Spool to disk to avoid Out-Of-Memory errors with large videos
+                with tempfile.NamedTemporaryFile(delete=False) as tmp:
+                    shutil.copyfileobj(file.file, tmp)
+                    temp_file_path = tmp.name
+                    
+                f1 = open(temp_file_path, "rb")
+                open_files.append(f1)
+                auth_files = {"file": (file.filename, f1, file.content_type)}
+    
+            tasks.append(client.post(f"{LAYER1_URL}/verify", data=auth_data, files=auth_files))
+    
+            # 2. Layer 2 Media
+            if file:
+                f2 = open(temp_file_path, "rb")
+                open_files.append(f2)
+                media_files = {"file": (file.filename, f2, file.content_type)}
+                tasks.append(client.post(f"{LAYER2_URL}/analyze/media", files=media_files))
+            else:
+                async def dummy_media():
+                    class Dummy:
+                        status_code = 200
+                        def json(self): return {}
+                    return Dummy()
+                tasks.append(dummy_media())
+                
+            # Wait for Auth and Media to finish
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            auth_res, media_res = results
+
+            # Helper to safely get json from a result
+            def safe_json(res, default={}):
+                if isinstance(res, Exception):
+                    print(f"Microservice exception: {res}")
+                    return default
+                if getattr(res, "status_code", 500) != 200:
+                    print(f"Microservice error: {getattr(res, 'text', 'Unknown')}")
+                    return default
+                try:
+                    return res.json()
+                except Exception:
+                    return default
+
+            auth_data = safe_json(auth_res)
+            media_data = safe_json(media_res)
+            
+            # 3. Combine initial text with OCR text, then run Layer 2 Text
+            combined_text = text or ""
+            is_ocr_only = not combined_text.strip()
+            
+            if media_data.get('extracted_ocr_text'):
+                combined_text += "\n" + media_data['extracted_ocr_text']
+                
+            text_data = {}
+            if combined_text.strip():
+                try:
+                    src_type = "ocr" if is_ocr_only else "user_input"
+                    text_res = await client.post(f"{LAYER2_URL}/analyze/text", json={"text": combined_text.strip(), "source_type": src_type})
+                    text_data = safe_json(text_res)
+                except Exception as e:
+                    print(f"Error calling text analysis: {e}")
+
+        txt_score = text_data.get('final_text_score', 0.0)
+        vid_score = media_data.get('video_fake_score', 0.0)
+        aud_score = media_data.get('audio_fake_score', 0.0)
+        
+        is_auth = auth_data.get('is_authenticated_sender', 0)
+            
+        # Extract domain from text if not provided
+        if not domain and combined_text:
+            import re
+            from urllib.parse import urlparse
+            urls = re.findall(r'https?://[^\s<>"]+|www\.[^\s<>"]+', combined_text)
+            if urls:
+                first_url = urls[0]
+                if not first_url.startswith('http'):
+                    first_url = 'http://' + first_url
+                domain = urlparse(first_url).netloc
+
+        # Call Central Brain
+        domain_age = get_domain_age_days(domain)
+        result = brain.calculate_final_threat(
+            text_score=txt_score,
+            video_score=vid_score,
+            audio_score=aud_score,
+            domain_age_days=domain_age,
+            is_authenticated_sender=is_auth
+        )
+        
+        has_media = file is not None
+        llm_report = generate_threat_report(
+            text_score=txt_score,
+            video_score=vid_score,
+            audio_score=aud_score,
+            domain_age=domain_age,
+            is_authenticated=is_auth,
+            final_score=result["threat_probability"],
+            raw_text=combined_text,
+            has_media=has_media
+        )
+        
+        scan_record = ScanHistory(
+            text_score=txt_score,
+            video_score=vid_score,
+            audio_score=aud_score,
+            is_authenticated_sender=is_auth,
+            domain=domain,
+            raw_context_text=combined_text,
+            final_score=result["threat_probability"],
+            classification=result["classification"],
+            llm_threat_report=llm_report
+        )
+        db.add(scan_record)
+        db.commit()
+        db.refresh(scan_record)
+        
+        result["scan_id"] = scan_record.id
+        result["llm_threat_report"] = llm_report
+        result["features_used"] = {
+            "video_score": vid_score,
+            "audio_score": aud_score,
+            "text_score": txt_score,
+            "is_auth": bool(is_auth == 1)
+        }
+        return result
+
+    finally:
+        for f in open_files:
+            f.close()
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.remove(temp_file_path)
+
 
 @router.post("/score")
 def score_endpoint(request: ScoreRequest, db: Session = Depends(get_db)):
@@ -72,11 +240,6 @@ def score_endpoint(request: ScoreRequest, db: Session = Depends(get_db)):
         
         result["scan_id"] = scan_record.id
         result["llm_threat_report"] = llm_report
-        result["timeline_data"] = {
-            "video": request.segmented_video_scores,
-            "audio": request.segmented_audio_scores,
-            "text": request.segmented_text_scores
-        }
         result["features_used"] = {
             "video_score": result["features_used"]["video_score"],
             "audio_score": result["features_used"]["audio_score"],

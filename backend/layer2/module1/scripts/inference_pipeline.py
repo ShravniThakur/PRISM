@@ -622,10 +622,6 @@ class TextThreatAnalyzer:
                 suspicious_url_count=len(url_result["suspicious_urls"]),
             )
 
-            # Prevent false positives from noisy OCR on authentic videos (e.g., news tickers)
-            if source_type == "ocr" and not url_result["is_url_threat"]:
-                final_score = final_score * 0.1
-
             # URLs explicitly override Text/Tone if they are malicious
             if url_result["is_url_threat"]:
                 final_score = max(final_score, 0.95)
@@ -640,10 +636,7 @@ class TextThreatAnalyzer:
 
             # ── Assemble output ─────────────────────────────────────────
             
-            # Discount segmented scores if OCR noise discount was applied
             segmented_scores = locals().get('segmented_scores', [])
-            if source_type == "ocr" and not url_result["is_url_threat"]:
-                segmented_scores = [s * 0.1 for s in segmented_scores]
                 
             output["final_text_score"]     = final_score
             output["model_confidence"]     = text_score

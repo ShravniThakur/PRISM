@@ -26,8 +26,8 @@ pytesseract
 facenet-pytorch
 numpy>=1.26
 ultralytics
-deepguard
 albumentations
+deepguard
 
 # Layer 3: Central Brain
 pandas

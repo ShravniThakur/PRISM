@@ -1,3 +1,4 @@
+from __future__ import annotations
 import joblib
 import pandas as pd
 model = joblib.load('../models/rf_model.joblib')

@@ -30,6 +30,7 @@ Usage:
 Author : PRISM ML Team
 """
 
+from __future__ import annotations
 import argparse
 import logging
 import os

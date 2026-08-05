@@ -1,3 +1,4 @@
+from __future__ import annotations
 import cv2
 import pytesseract
 from PIL import Image
@@ -55,8 +56,14 @@ class VisionProcessor:
                         # Clean up random Tesseract noise (keep alphanumeric and basic punctuation)
                         cleaned = re.sub(r'[^a-zA-Z0-9\s.,!?]', '', line)
                         cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-                        if len(cleaned) > 4: # Ignore short random noise
-                            ocr_texts.append(cleaned)
+                        
+                        # Heuristic: Drop gibberish lines (must have at least 2 words, and enough long words)
+                        words = cleaned.split()
+                        if len(words) >= 2:
+                            long_words = [w for w in words if len(w) > 3]
+                            # If at least 40% of the words are > 3 chars, keep it
+                            if (len(long_words) / len(words)) >= 0.4:
+                                ocr_texts.append(cleaned)
                     
             frame_count += 1
             

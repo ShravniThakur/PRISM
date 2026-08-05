@@ -1,3 +1,4 @@
+from __future__ import annotations
 import torch
 import torch.nn.functional as F
 from transformers import AutoFeatureExtractor, AutoModelForAudioClassification, pipeline
@@ -50,34 +51,43 @@ class DeepfakeScoringEngine:
         except Exception as e:
             print(f"Failed to load audio model: {e}")
 
-    def score_video(self, video_path: str) -> float:
+    def score_video(self, video_path: str) -> dict:
         """
         Takes a path to a raw video file.
-        Passes it through the DeepGuard pipeline.
-        Returns the fake probability.
+        Uses ffmpeg to extract 5-second chunks.
+        Passes them through the DeepGuard pipeline.
+        Returns the overall fake probability and the timeline array.
         """
         if not video_path or not self.video_model:
-            return 0.0
+            return {"overall_score": 0.0}
             
+        import tempfile
+        import subprocess
+        import os
+        import math
+        
+        overall = 0.0
         try:
-            results = self.video_model(video_path)
-            # results format: [{'label': 'fake', 'score': 0.9972}, {'label': 'real', 'score': 0.0028}]
-            # Find the score for 'fake'
-            for res in results:
+            # 1. Get overall score directly from the full video
+            full_results = self.video_model(video_path)
+            for res in full_results:
                 if res['label'] == 'fake':
-                    return res['score']
-        except Exception as e:
-            print(f"Error scoring video: {e}")
-            
-        return 0.0
+                    overall = res['score']
 
-    def score_audio(self, audio_array: np.ndarray, chunk_duration_sec: int = 5) -> float:
+            # Timeline graph data logic removed
+            
+        except Exception as e:
+            print(f"Error evaluating video: {e}")
+            
+        return {"overall_score": overall}
+
+    def score_audio(self, audio_array: np.ndarray, chunk_duration_sec: int = 5) -> dict:
         """
         Takes a 1D audio numpy array (16kHz), chunks it, and runs Wav2Vec2.
-        Returns the filtered average fake probability.
+        Returns the filtered average fake probability and the timeline array.
         """
         if not self.audio_model or audio_array is None:
-            return 0.0
+            return {"overall_score": 0.0}
             
         sampling_rate = 16000
         chunk_size = sampling_rate * chunk_duration_sec
@@ -106,7 +116,8 @@ class DeepfakeScoringEngine:
                 fake_prob = probs[0][1].item()
                 fake_probs.append(fake_prob)
                 
-        # Remove outliers and average the remaining probabilities
+        # Calculate overall score removing outliers
+        overall_score = 0.0
         if fake_probs:
             if len(fake_probs) > 2:
                 q1 = np.percentile(fake_probs, 25)
@@ -122,5 +133,6 @@ class DeepfakeScoringEngine:
             else:
                 filtered_probs = fake_probs
                 
-            return sum(filtered_probs) / len(filtered_probs)
-        return 0.0
+            overall_score = sum(filtered_probs) / len(filtered_probs)
+            
+        return {"overall_score": overall_score}
