@@ -28,6 +28,11 @@ def generate_threat_report(text_score: float, video_score: float, audio_score: f
     if has_media:
         media_signals = f"\n    - Video Deepfake Probability: {video_score:.2f} (0.00 = Authentic, 1.00 = Fake)\n    - Audio Deepfake Probability: {audio_score:.2f} (0.00 = Authentic, 1.00 = Fake)"
 
+    discrepancy_instruction = ""
+    max_subscore = max(text_score, video_score, audio_score)
+    if not is_authenticated and max_subscore > 0.5 and final_score < 50.0:
+        discrepancy_instruction = f"4. CRITICAL: A specific sub-score is notably high (Score: {max_subscore:.2f}) but the Overall Threat Score is low. Explicitly explain this discrepancy in the first paragraph, noting that the AI model determined the high sub-score was a false positive or outweighed by other safe signals."
+
     prompt = f"""You are PRISM, an elite cybersecurity AI. Analyze the following threat signals and generate a structured JSON threat report for a retail investor. 
     
     Threat Signals:
@@ -40,7 +45,7 @@ def generate_threat_report(text_score: float, video_score: float, audio_score: f
     1. You must respond ONLY with a valid JSON object. Do not include markdown formatting or extra text.
     2. Maintain a cold, authoritative, cybersecurity tone in your writing.
     3. CRITICAL: If the asset is Cryptographically Authenticated (Yes), explicitly state that it is a genuine official communication. Do not mention AI threat scores or false positives; focus entirely on the fact that the cryptographic signature proves its safety.
-    4. CRITICAL: If the asset is NOT authenticated and a specific sub-score is high but the Overall Threat Score is low, explicitly explain this discrepancy in the first paragraph.
+    {discrepancy_instruction}
     
     JSON Schema:
     {{
