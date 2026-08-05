@@ -30,3 +30,16 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body {
+    background-color: white !important;
+  }
+  @page {
+    margin: 1cm;
+  }
+}
