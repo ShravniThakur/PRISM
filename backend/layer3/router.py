@@ -4,7 +4,7 @@ import asyncio
 import httpx
 import tempfile
 import shutil
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.orm import Session
@@ -12,7 +12,9 @@ from sqlalchemy.orm import Session
 from layer3.central_brain import CentralBrain
 from layer3.scripts.metadata_extractor import get_domain_age_days
 from layer3.scripts.llm_reporter import generate_threat_report
-from layer3.db import get_db, ScanHistory
+from layer3.db import get_db, ScanHistory, User
+from layer3.auth_router import get_current_user, get_current_user_optional
+from layer3.scripts.email_reporter import send_threat_report_email
 
 router = APIRouter(prefix="/brain", tags=["Central Brain Scoring Engine"])
 
@@ -32,12 +34,14 @@ class ScoreRequest(BaseModel):
 
 @router.post("/orchestrate")
 async def orchestrate_endpoint(
+    background_tasks: BackgroundTasks,
     file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
     domain: Optional[str] = Form(None),
     entity_id: Optional[str] = Form(None),
     signature: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: Optional[User] = Depends(get_current_user_optional)
 ):
     if not file and not text:
         raise HTTPException(status_code=400, detail="Must provide file or text")
@@ -161,6 +165,7 @@ async def orchestrate_endpoint(
         )
         
         scan_record = ScanHistory(
+            user_id=user.id if user else None,
             text_score=txt_score,
             video_score=vid_score,
             audio_score=aud_score,
@@ -183,8 +188,16 @@ async def orchestrate_endpoint(
             "text_score": txt_score,
             "is_auth": bool(is_auth == 1)
         }
+        
+        if user and user.email:
+            background_tasks.add_task(send_threat_report_email, user.email, llm_report, result["threat_probability"], str(scan_record.id), result["features_used"])
+            
         return result
 
+    except BaseException as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
     finally:
         for f in open_files:
             f.close()
@@ -193,7 +206,7 @@ async def orchestrate_endpoint(
 
 
 @router.post("/score")
-def score_endpoint(request: ScoreRequest, db: Session = Depends(get_db)):
+def score_endpoint(request: ScoreRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db), user: Optional[User] = Depends(get_current_user_optional)):
     """
     Accepts raw features from all PRISM microservices, dynamically looks up
     the domain age via WHOIS, and predicts the final threat classification.
@@ -224,6 +237,7 @@ def score_endpoint(request: ScoreRequest, db: Session = Depends(get_db)):
         
         # 4. Save to Database
         scan_record = ScanHistory(
+            user_id=user.id if user else None,
             text_score=result["features_used"]["text_score"],
             video_score=result["features_used"]["video_score"],
             audio_score=result["features_used"]["audio_score"],
@@ -247,20 +261,25 @@ def score_endpoint(request: ScoreRequest, db: Session = Depends(get_db)):
             "is_auth": bool(request.is_authenticated_sender == 1)
         }
         
+        if user and user.email:
+            background_tasks.add_task(send_threat_report_email, user.email, llm_report, result["threat_probability"], str(scan_record.id), result["features_used"])
+        
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/history")
-def get_history(db: Session = Depends(get_db), limit: int = 50):
+def get_history(db: Session = Depends(get_db), limit: int = 50, user: User = Depends(get_current_user)):
     """Fetch recent scans for the history tab."""
-    scans = db.query(ScanHistory).order_by(ScanHistory.timestamp.desc()).limit(limit).all()
+    scans = db.query(ScanHistory).filter(ScanHistory.user_id == user.id).order_by(ScanHistory.timestamp.desc()).limit(limit).all()
     return scans
 
 @router.get("/report/{scan_id}")
-def get_report(scan_id: str, db: Session = Depends(get_db)):
+def get_report(scan_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Fetch a detailed threat report by scan ID."""
     scan = db.query(ScanHistory).filter(ScanHistory.id == scan_id).first()
     if not scan:
         raise HTTPException(status_code=404, detail="Scan not found")
+    if scan.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to view this scan")
     return scan
