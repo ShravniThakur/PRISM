@@ -43,3 +43,10 @@ httpx>=0.27
 huggingface_hub
 requests
 groq
+
+# Auth & DB
+psycopg2-binary
+google-auth
+PyJWT
+
+resend
