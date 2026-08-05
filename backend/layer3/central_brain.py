@@ -77,7 +77,7 @@ class CentralBrain:
         pred = 1 if prob >= 0.5 else 0
         
         return {
-            "threat_probability": round(prob * 100, 2),
+            "threat_probability": float(round(prob * 100, 2)),
             "classification": "Malicious" if pred == 1 else "Safe",
             "features_used": {
                 "text_score": text_score,
