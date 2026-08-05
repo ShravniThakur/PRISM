@@ -114,19 +114,19 @@ export default function Dashboard() {
     const redFlags: { title: string, description: string, color: string }[] = [];
     if (finalScore) {
         if (!finalScore.features_used?.is_auth) {
-            redFlags.push({ title: "UNVERIFIED SENDER", description: "Zero-Trust Cryptographic Signature is missing or invalid.", color: "text-[#FFB800] border-[#FFB800] border-l-[#FFB800]" });
+            redFlags.push({ title: "UNVERIFIED SENDER", description: "Zero-Trust Cryptographic Signature is missing or invalid.", color: "text-cyan-400" });
         }
         if ((finalScore.features_used?.video_score || 0) > 0.6) {
-            redFlags.push({ title: "VISUAL ANOMALIES", description: "Spatiotemporal inconsistencies detected indicative of a deepfake.", color: "text-[#FF3333] border-[#FF3333] border-l-[#FF3333]" });
+            redFlags.push({ title: "VISUAL ANOMALIES", description: "Spatiotemporal inconsistencies detected indicative of a deepfake.", color: "text-cyan-400" });
         }
         if ((finalScore.features_used?.audio_score || 0) > 0.6) {
-            redFlags.push({ title: "SYNTHETIC AUDIO", description: "Acoustic patterns match AI voice synthesis models.", color: "text-[#FF3333] border-[#FF3333] border-l-[#FF3333]" });
+            redFlags.push({ title: "SYNTHETIC AUDIO", description: "Acoustic patterns match AI voice synthesis models.", color: "text-cyan-400" });
         }
         if ((finalScore.features_used?.text_score || 0) > 0.6) {
-            redFlags.push({ title: "PHISHING SEMANTICS", description: "High-urgency language and manipulative phrasing detected.", color: "text-[#FFB800] border-[#FFB800] border-l-[#FFB800]" });
+            redFlags.push({ title: "PHISHING SEMANTICS", description: "High-urgency language and manipulative phrasing detected.", color: "text-cyan-400" });
         }
         if (redFlags.length === 0) {
-            redFlags.push({ title: "NO ANOMALIES DETECTED", description: "The asset appears to be safe based on current heuristics.", color: "text-[#39FF14] border-[#39FF14] border-l-[#39FF14]" });
+            redFlags.push({ title: "NO ANOMALIES DETECTED", description: "The asset appears to be safe based on current heuristics.", color: "text-cyan-400" });
         }
     }
 
@@ -249,7 +249,7 @@ export default function Dashboard() {
                         </div>
 
                         {/* Row 2: 5 Separate Blocks (Auth, Video, Audio, Text, Overall) */}
-                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-stretch">
+                        <div className="grid grid-cols-1 lg:grid-cols-5 print:grid-cols-3 gap-6 items-stretch print:items-start print:break-inside-avoid">
                             <div className="bg-black border border-gray-800 rounded-xl p-5 flex flex-col justify-center shadow-lg h-full">
                                 <div className="text-[10px] font-black text-white tracking-widest mb-2">AUTHENTICATION STATUS</div>
                                 <div className={`flex items-center gap-2 text-[10px] font-black tracking-widest ${finalScore.features_used?.is_auth ? 'text-[#39FF14]' : 'text-[#FF3333]'}`}>
@@ -306,11 +306,11 @@ export default function Dashboard() {
                         </div>
 
                         {/* Row 3: Grid (Report | Timeline) */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 print:grid-cols-1 gap-8 items-stretch print:items-start">
                             {/* Left Column: Threat Report */}
-                            <div className="flex flex-col">
-                                <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col h-full shadow-sm">
-                                    <div className="text-xs font-black text-black mb-4 tracking-widest uppercase flex items-center gap-3">
+                            <div className="flex flex-col print:break-inside-avoid">
+                                <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col h-full print:h-auto shadow-sm">
+                                    <div className="text-sm font-black text-black mb-4 tracking-widest uppercase flex items-center gap-3">
                                         <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
                                             <Info size={14} strokeWidth={3} />
                                         </div>
@@ -318,7 +318,7 @@ export default function Dashboard() {
                                     </div>
                                     <div className="bg-[#F4F7FB] border border-blue-50 rounded-xl p-5 space-y-4 flex-1">
                                         {summarySentences.length > 0 ? summarySentences.map((sentence: any, idx: number) => {
-                                            const text = typeof sentence === 'string' ? sentence : JSON.stringify(sentence);
+                                            const text = typeof sentence === 'string' ? sentence : (sentence.text || JSON.stringify(sentence));
                                             return (
                                             <div key={idx} className="flex items-start gap-3">
                                                 <div className="mt-0.5 text-blue-500 shrink-0">
@@ -337,22 +337,29 @@ export default function Dashboard() {
                             </div>
 
                             {/* Right Column: Forensic Badges */}
-                            <div className="flex flex-col">
-                                <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col h-full shadow-sm">
-                                    <div className="text-xs font-black text-black mb-4 tracking-widest uppercase flex items-center gap-3">
+                            <div className="flex flex-col print:break-inside-avoid">
+                                <div className="bg-white border border-gray-200 rounded-xl p-6 flex flex-col h-full print:h-auto shadow-sm">
+                                    <div className="text-sm font-black text-black mb-4 tracking-widest uppercase flex items-center gap-3">
                                         <div className="w-6 h-6 bg-red-100 text-red-600 rounded-full flex items-center justify-center">
                                             <AlertTriangle size={14} strokeWidth={3} />
                                         </div>
                                         FORENSIC RED FLAGS
                                     </div>
-                                    <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2">
+                                    <div className="flex flex-col gap-4 flex-1 overflow-y-auto print:overflow-visible pr-2">
                                         {redFlags.map((flag, idx) => (
-                                            <div key={idx} className={`flex flex-col p-4 rounded-lg border-l-4 bg-gray-50 border ${flag.color}`}>
-                                                <div className="text-xs font-black tracking-widest uppercase mb-1">
-                                                    {flag.title}
+                                            <div key={idx} className="bg-white rounded-xl shadow-sm flex flex-col overflow-hidden border border-gray-200">
+                                                <div className="bg-black p-3 flex items-center gap-3">
+                                                    <div className={`w-6 h-6 rounded-full bg-gray-900 border border-gray-800 flex items-center justify-center shrink-0 ${flag.color}`}>
+                                                        {flag.title === "NO ANOMALIES DETECTED" ? <CheckCircle size={12} /> : <AlertTriangle size={12} />}
+                                                    </div>
+                                                    <div className="text-white text-[10px] font-black tracking-widest uppercase mt-0.5">
+                                                        {flag.title}
+                                                    </div>
                                                 </div>
-                                                <div className="text-gray-600 text-xs font-medium leading-relaxed">
-                                                    {flag.description}
+                                                <div className="p-4 flex-1">
+                                                    <div className="text-gray-700 text-[12px] font-medium leading-relaxed">
+                                                        {flag.description}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -363,12 +370,12 @@ export default function Dashboard() {
                         </div>
 
                         {/* Row 4: Recommended Actions (Full Width) */}
-                        <div className="bg-[#F8F9FA] border border-gray-200 rounded-xl p-6 shadow-sm mt-8">
-                            <div className="text-xs font-black text-black mb-6 tracking-widest uppercase flex items-center gap-3">
+                        <div className="bg-[#F8F9FA] border border-gray-200 rounded-xl p-6 shadow-sm mt-8 print:break-inside-avoid">
+                            <div className="text-sm font-black text-black mb-6 tracking-widest uppercase flex items-center gap-3">
                                 <div className="w-2 h-2 bg-emerald-400 rounded-full"></div>
                                 RECOMMENDED ACTIONS
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 print:grid-cols-2 gap-6">
                                 {recommendedActions.length > 0 ? recommendedActions.map((action: any, idx: number) => (
                                     <div key={idx} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden border border-gray-200">
                                         <div className="bg-black p-4 flex items-center gap-3">
@@ -394,45 +401,49 @@ export default function Dashboard() {
                         </div>
 
                         {/* Row 5: Bottom Section (Analysis Timeline & Footprint) */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch mt-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 print:grid-cols-1 gap-8 items-stretch print:items-start mt-8">
                             {/* Left Col: Analysis Timeline */}
-                            <div className="bg-[#F8F9FA] border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col">
-                                <div className="text-xs font-black text-black mb-6 tracking-widest uppercase flex items-center gap-3">
+                            <div className="bg-[#F8F9FA] border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col print:break-inside-avoid">
+                                <div className="text-sm font-black text-black mb-6 tracking-widest uppercase flex items-center gap-3">
                                     <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                                     ANALYSIS TIMELINE
                                 </div>
-                                <div className="flex-1 flex items-center justify-between relative px-2 mt-4">
-                                    {/* Connecting Line */}
-                                    <div className="absolute top-4 left-10 right-10 h-[2px] bg-gray-200 z-0"></div>
+                                <div className="flex-1 flex items-start justify-between relative mt-12">
+                                    {/* Connecting Snake Line */}
+                                    <div className="absolute -top-6 left-12 right-12 h-24 z-0">
+                                        <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
+                                            <path d="M 0 50 Q 12.5 -50, 25 50 T 50 50 T 75 50 T 100 50" stroke="black" strokeWidth="4" fill="none" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
+                                        </svg>
+                                    </div>
 
                                     {/* Steps */}
-                                    <div className="flex flex-col items-center gap-3 relative z-10">
-                                        <div className="w-8 h-8 rounded-full border border-gray-300 bg-white flex items-center justify-center text-gray-500 shadow-sm"><Download size={14} /></div>
-                                        <div className="text-[9px] font-black text-gray-800 text-center uppercase tracking-wider max-w-[80px]">Asset Uploaded</div>
+                                    <div className="flex flex-col items-center gap-8 relative z-10 w-24">
+                                        <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-cyan-400 shadow-lg"><Download size={20} /></div>
+                                        <div className="text-[10px] font-black text-gray-800 text-center uppercase tracking-wider">Asset Uploaded</div>
                                     </div>
-                                    <div className="flex flex-col items-center gap-3 relative z-10">
-                                        <div className="w-8 h-8 rounded-full border border-gray-300 bg-white flex items-center justify-center text-cyan-500 shadow-sm"><UploadCloud size={14} /></div>
-                                        <div className="text-[9px] font-black text-gray-800 text-center uppercase tracking-wider max-w-[80px]">Media Processed</div>
+                                    <div className="flex flex-col items-center gap-8 relative z-10 w-24">
+                                        <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-cyan-400 shadow-lg"><UploadCloud size={20} /></div>
+                                        <div className="text-[10px] font-black text-gray-800 text-center uppercase tracking-wider">Media Processed</div>
                                     </div>
-                                    <div className="flex flex-col items-center gap-3 relative z-10">
-                                        <div className="w-8 h-8 rounded-full border border-gray-300 bg-white flex items-center justify-center text-blue-500 shadow-sm"><Info size={14} /></div>
-                                        <div className="text-[9px] font-black text-gray-800 text-center uppercase tracking-wider max-w-[80px]">Transcript Analysed</div>
+                                    <div className="flex flex-col items-center gap-8 relative z-10 w-24">
+                                        <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-cyan-400 shadow-lg"><Info size={20} /></div>
+                                        <div className="text-[10px] font-black text-gray-800 text-center uppercase tracking-wider">Transcript Analysed</div>
                                     </div>
-                                    <div className="flex flex-col items-center gap-3 relative z-10">
-                                        <div className="w-8 h-8 rounded-full border border-red-200 bg-red-50 flex items-center justify-center text-red-500 shadow-sm shadow-red-100"><AlertTriangle size={14} /></div>
-                                        <div className="text-[9px] font-black text-gray-800 text-center uppercase tracking-wider max-w-[80px]">Threat Detected</div>
+                                    <div className="flex flex-col items-center gap-8 relative z-10 w-24">
+                                        <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-cyan-400 shadow-lg"><AlertTriangle size={20} /></div>
+                                        <div className="text-[10px] font-black text-gray-800 text-center uppercase tracking-wider">Threat Detected</div>
                                     </div>
-                                    <div className="flex flex-col items-center gap-3 relative z-10">
-                                        <div className="w-8 h-8 rounded-full border border-gray-300 bg-white flex items-center justify-center text-gray-800 shadow-sm"><CheckCircle size={14} /></div>
-                                        <div className="text-[9px] font-black text-gray-800 text-center uppercase tracking-wider max-w-[80px]">Report Generated</div>
+                                    <div className="flex flex-col items-center gap-8 relative z-10 w-24">
+                                        <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-cyan-400 shadow-lg"><CheckCircle size={20} /></div>
+                                        <div className="text-[10px] font-black text-gray-800 text-center uppercase tracking-wider">Report Generated</div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Right Col: Threat Footprint & Buttons */}
-                            <div className="flex flex-col gap-6">
-                                <div className="bg-[#F8F9FA] border border-gray-200 rounded-xl p-6 shadow-sm flex-1">
-                                    <div className="text-xs font-black text-black mb-4 tracking-widest uppercase flex items-center gap-3">
+                            <div className="flex flex-col gap-6 print:break-inside-avoid">
+                                <div className="bg-[#F8F9FA] border border-gray-200 rounded-xl p-6 shadow-sm flex-1 print:h-auto">
+                                    <div className="text-sm font-black text-black mb-4 tracking-widest uppercase flex items-center gap-3">
                                         <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
                                         THREAT FOOTPRINT
                                     </div>
