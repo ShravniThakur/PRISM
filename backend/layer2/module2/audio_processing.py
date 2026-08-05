@@ -23,6 +23,11 @@ class AudioProcessor:
             import soundfile as sf
             X, fs = sf.read(audio_path)
             
+            # Check for pure silence or extreme quietness (< -60 dBFS approx)
+            if np.max(np.abs(X)) < 0.001:
+                print(f"Audio file {audio_path} is considered silent. Skipping.")
+                return None
+            
             # Limit to max_duration_sec to prevent OOM
             if len(X) > self.max_samples:
                 X = X[:self.max_samples]
@@ -39,6 +44,16 @@ class AudioProcessor:
         """
         if not audio_path:
             return ""
+            
+        # Check for silence before transcription to prevent Whisper from hallucinating
+        try:
+            import soundfile as sf
+            X, fs = sf.read(audio_path)
+            if np.max(np.abs(X)) < 0.001:
+                print(f"Audio file {audio_path} is silent. Skipping transcription.")
+                return ""
+        except Exception as e:
+            print(f"Error checking audio silence: {e}")
         
         try:
             print(f"Transcribing audio: {audio_path}")
