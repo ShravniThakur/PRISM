@@ -1,10 +1,15 @@
 from __future__ import annotations
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class Settings:
     def __init__(self) -> None:
-        self.database_url = os.getenv("DATABASE_URL", "sqlite:///./prism_auth.db")
+        self.database_url = os.getenv("DATABASE_URL")
+        if not self.database_url:
+            raise ValueError("DATABASE_URL must be set in the environment")
 
         # Text: TLSH distance between normalized texts (0 = identical).
         # Measured on ~400-char advisories: real forwards ("Fwd:" prefix,

@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from layer3.router import router as brain_router
+from layer3.auth_router import router as auth_router
 from layer3.db import engine, Base
 
 # Create database tables
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(brain_router)
+app.include_router(auth_router)
 
 @app.get("/health")
 def health():

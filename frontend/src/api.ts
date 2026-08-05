@@ -7,7 +7,26 @@ export const LAYER2_API = 'http://localhost:8001';
 // Layer 3: Central Brain & Threat Reports
 export const LAYER3_API = 'http://localhost:8002';
 
+// Add interceptor to include JWT token if present
+axios.interceptors.request.use((config) => {
+    const token = localStorage.getItem('prism_token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+});
+
 export const api = {
+    googleLogin: async (token: string) => {
+        try {
+            const res = await axios.post(`${LAYER3_API}/brain/auth/google`, { token });
+            return res.data;
+        } catch (e) {
+            console.error("Login failed", e);
+            throw e;
+        }
+    },
+
     verifySignature: async (input: { text?: string; file?: File }) => {
         const formData = new FormData();
         if (input.text) formData.append("text", input.text);
