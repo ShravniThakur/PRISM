@@ -16,18 +16,9 @@ Pillow>=10.0
 pdfplumber>=0.11
 
 # Layer 2: AI Models (Text, Vision, Audio)
-torch
-torchvision
-torchaudio
-transformers
-librosa
-opencv-python>=4.9
-pytesseract
-facenet-pytorch
+# NOTE: All heavy AI dependencies (transformers, cv2, torch) were removed because they are deployed to Hugging Face Spaces.
+
 numpy>=1.26
-ultralytics
-albumentations
-deepguard
 
 # Layer 3: Central Brain
 pandas
@@ -50,3 +41,4 @@ google-auth
 PyJWT
 
 resend
+gradio
