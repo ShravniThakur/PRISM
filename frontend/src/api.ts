@@ -1,11 +1,12 @@
 import axios from 'axios';
 
-// Layer 1: Cryptographic Authentication
-export const LAYER1_API = 'http://localhost:8000';
-// Layer 2: Deepfake/Phishing AI Models
-export const LAYER2_API = 'http://localhost:8001';
-// Layer 3: Central Brain & Threat Reports
-export const LAYER3_API = 'http://localhost:8002';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+// Layer 1: Cryptographic Authentication (mounted at /layer1 in render_app)
+export const LAYER1_API = import.meta.env.VITE_API_URL ? `${BASE_URL}/layer1` : 'http://localhost:8000';
+
+// Layer 3: Central Brain & Threat Reports (mounted at /layer3 in render_app)
+export const LAYER3_API = import.meta.env.VITE_API_URL ? `${BASE_URL}/layer3` : 'http://localhost:8002';
 
 // Add interceptor to include JWT token if present
 axios.interceptors.request.use((config) => {
