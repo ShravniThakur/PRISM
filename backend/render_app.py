@@ -10,14 +10,8 @@ render_app = FastAPI(
     description="Unified API gateway hosting Authentication (Layer 1) and Orchestration (Layer 3)."
 )
 
-# CORS middleware for the unified app
-render_app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS is handled by the individual microservices (Layer 1 and Layer 3).
+# Do not add CORSMiddleware here to avoid duplicate Access-Control-Allow-Origin headers.
 
 # Mount the individual microservices
 render_app.mount("/layer1", layer1_app)
