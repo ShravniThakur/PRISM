@@ -1,3 +1,14 @@
+---
+title: PRISM AI Engine
+emoji: 🔍
+colorFrom: purple
+colorTo: indigo
+sdk: gradio
+sdk_version: "4.44.0"
+app_file: backend/app.py
+pinned: false
+---
+
 # PRISM: Zero-Trust AI Threat Detection System
 
 PRISM is a state-of-the-art, multi-layered threat detection platform designed to protect users from sophisticated financial scams, phishing attacks, and AI-generated deepfakes (Audio/Video).

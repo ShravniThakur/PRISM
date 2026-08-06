@@ -12,8 +12,13 @@ DEEPFAKE_MODELS_DIR = PRISM_ROOT / "DeepFakeModels"
 
 class DeepfakeScoringEngine:
     def __init__(self):
-        # Check if MPS is available for GPU acceleration on Mac
-        self.device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+        # Cross-platform device selection: CUDA (HF GPU) > MPS (Mac) > CPU
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            self.device = torch.device('mps')
+        else:
+            self.device = torch.device('cpu')
         print(f"DeepfakeScoringEngine running on: {self.device}")
         
         self.video_model = None
@@ -26,7 +31,13 @@ class DeepfakeScoringEngine:
     def _load_video_model(self):
         print("Loading Video Deepfake Model (DeepGuard/KoreaPeter)...")
         try:
-            device_str = "mps" if self.device.type == "mps" else "cpu"
+            # Map torch device to HuggingFace pipeline device string/index
+            if self.device.type == "cuda":
+                device_str = 0   # HF pipeline uses integer index for CUDA
+            elif self.device.type == "mps":
+                device_str = "mps"
+            else:
+                device_str = "cpu"
             self.video_model = pipeline(
                 "video-classification",
                 model="KoreaPeter/ms-eff-gcvit-deepfake-b5-ff-plus-plus",
@@ -40,8 +51,8 @@ class DeepfakeScoringEngine:
 
     def _load_audio_model(self):
         print("Loading Audio Deepfake Model (Wav2Vec2)...")
-        # Load local Wav2Vec2 model from DeepFakeModels folder
-        model_path = str(DEEPFAKE_MODELS_DIR / "wav2vec2-deepfake-voice-detector")
+        # Load Wav2Vec2 model directly from Hugging Face Hub
+        model_path = "garystafford/wav2vec2-deepfake-voice-detector"
         try:
             self.audio_extractor = AutoFeatureExtractor.from_pretrained(model_path)
             self.audio_model = AutoModelForAudioClassification.from_pretrained(model_path)
