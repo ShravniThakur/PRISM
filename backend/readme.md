@@ -39,7 +39,7 @@ python -m uvicorn layer2.main:app --port 8001 --reload
 *Swagger UI:* [http://localhost:8001/docs](http://localhost:8001/docs)
 
 ### Layer 3: Central Brain (Scoring Engine)
-Takes the outputs from Layer 1 and Layer 2, performs a dynamic WHOIS lookup for domain age, and runs the entire 5-dimensional vector through a trained Random Forest to output a final threat verdict. It then calls the Groq LLM to generate a human-readable Threat Report and saves the entire scan history to a local SQLite database.
+Takes the outputs from Layer 1 and Layer 2, performs a dynamic WHOIS lookup for domain age, and runs the entire 5-dimensional vector through a trained Random Forest to output a final threat verdict. It then calls the Groq LLM to generate a human-readable Threat Report and saves the entire scan history to a PostgreSQL database.
 ```bash
 # From the backend/ directory:
 python -m uvicorn layer3.main:app --port 8002 --reload

@@ -13,8 +13,8 @@ def new_id() -> str:
 
 
 def utcnow() -> datetime:
-    # Naive UTC everywhere: SQLite returns naive datetimes, and mixing
-    # aware/naive values breaks comparisons.
+    # Naive UTC everywhere: ensures consistent database storage, 
+    # and mixing aware/naive values breaks comparisons.
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 

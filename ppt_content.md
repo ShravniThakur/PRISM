@@ -65,7 +65,7 @@ flowchart LR
 
 ## Slide 6 — Layer 1: Authenticating What's Genuine
 
-- **Core idea:** Entities sign their official content using asymmetric cryptography. The public keys are stored in a secure zero-trust registry (SQLite via SQLAlchemy).
+- **Core idea:** Entities sign their official content using asymmetric cryptography. The public keys are stored in a secure zero-trust registry (PostgreSQL via SQLAlchemy).
 - **Technical Implementation (Fuzzy Hashing):** A byte-exact hash breaks the moment WhatsApp recompresses a video. To solve this, PRISM uses **TLSH** (Trend Micro Locality Sensitive Hash) for text semantics and **pHash** (Perceptual Hashing) for images/videos. This ensures a compressed forward still verifies correctly.
 - **The "dual-lock" refinement for text:** Fuzzy hashing alone is risky, because swapping a single URL barely moves a fuzzy fingerprint. Layer 1 locks critical tokens (links, account numbers) separately and exactly.
 - **Three possible outcomes, not a binary:** *Authentic*, *No record found* (handled by Layer 2 AI), and **"Tampering suspected"** (high similarity to something genuine, but a critical detail doesn't match).
@@ -172,7 +172,7 @@ flowchart LR
 
 - **Frontend:** React 19, TypeScript, Vite, TailwindCSS v4, Recharts
 - **Backend Architecture:** Decoupled FastAPI microservices ensuring independent scaling of Cryptography and ML workloads
-- **Layer 1 (Authentication):** `cryptography` (Ed25519), `py-tlsh` (Fuzzy Hashing), `imagehash` (Perceptual Hashing), SQLAlchemy + SQLite
+- **Layer 1 (Authentication):** `cryptography` (Ed25519), `py-tlsh` (Fuzzy Hashing), `imagehash` (Perceptual Hashing), SQLAlchemy + PostgreSQL
 - **Layer 2 (AI Inference):** PyTorch, HuggingFace Transformers, OpenCV, Librosa, Tesseract-OCR
   - **Models:** FinBERT (Text), MS-EffGCViT (Video), Wav2Vec2 (Audio)
 - **Layer 3 (Central Brain):** `scikit-learn` (Random Forest), `python-whois` (Dynamic Domain Age), Groq LLM API (Explainable AI Reports)

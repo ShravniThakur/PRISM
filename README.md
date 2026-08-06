@@ -15,7 +15,7 @@ graph TD
     Frontend --> Layer2["Layer 2: AI Engine"]
     Layer1 -.-> Layer3["Layer 3: Central Brain"]
     Layer2 -.-> Layer3
-    Layer3 --> DB[("SQLite DB")]
+    Layer3 --> DB[("PostgreSQL DB")]
     Layer3 --> LLM["Groq LLM"]
     LLM -.-> Layer3
     Layer3 -.-> Frontend

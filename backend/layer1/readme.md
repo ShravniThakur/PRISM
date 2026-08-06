@@ -25,7 +25,7 @@ Here is exactly what every file and folder inside `app/` is doing:
 *   **`config.py`**: The "Control Center". Stores sensitivity thresholds (e.g., how different a video's pixels can be before it's flagged as a Deepfake rather than WhatsApp compression).
 
 ### 🗄️ The Database Layer
-*   **`db.py`**: Connects to a local SQLite database to safely store the registry of trusted entities.
+*   **`db.py`**: Connects to a PostgreSQL database to safely store the registry of trusted entities.
 *   **`models.py`**: Defines the database tables using SQLAlchemy (`Entity` and `SignedAsset`).
 *   **`schemas.py`**: Pydantic models that strictly validate all incoming JSON data to prevent malformed requests.
 
@@ -50,7 +50,7 @@ Here is exactly what every file and folder inside `app/` is doing:
 *   **`config.py`**: The "Control Center". Stores sensitivity thresholds (e.g., how different a video's pixels can be before it's flagged as a Deepfake rather than WhatsApp compression).
 
 ### 🗄️ The Database Layer
-*   **`db.py`**: Connects to a local SQLite database to safely store the registry of trusted entities.
+*   **`db.py`**: Connects to a PostgreSQL database to safely store the registry of trusted entities.
 *   **`models.py`**: Defines the database tables using SQLAlchemy (`Entity` and `SignedAsset`).
 *   **`schemas.py`**: Pydantic models that strictly validate all incoming JSON data to prevent malformed requests.
 
