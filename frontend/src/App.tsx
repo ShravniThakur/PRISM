@@ -11,7 +11,9 @@ if (!GOOGLE_CLIENT_ID) {
     console.error("VITE_GOOGLE_CLIENT_ID must be set in the environment");
 }
 
-const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
+import { ReactNode } from 'react';
+
+const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const token = localStorage.getItem('prism_token');
   if (!token) {
     return <Navigate to="/login" replace />;
