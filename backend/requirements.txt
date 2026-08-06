@@ -16,7 +16,9 @@ Pillow>=10.0
 pdfplumber>=0.11
 
 # Layer 2: AI Models (Text, Vision, Audio)
-# NOTE: All heavy AI dependencies (transformers, cv2, torch) were removed because they are deployed to Hugging Face Spaces.
+# NOTE: All heavy AI dependencies (transformers, torch) were removed because they are deployed to Hugging Face Spaces.
+# Using headless opencv for Layer 1 perceptual video hashing to save memory on Render.
+opencv-python-headless>=4.9
 
 numpy>=1.26
 
