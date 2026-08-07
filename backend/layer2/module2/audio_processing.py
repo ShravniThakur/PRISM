@@ -9,7 +9,8 @@ class AudioProcessor:
         self.sample_rate = sample_rate
         self.max_samples = sample_rate * max_duration_sec
         # Use Whisper Tiny (100% free, local, open-source model)
-        self.stt_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-tiny")
+        # Force CPU to prevent ZeroGPU interception crashes
+        self.stt_pipeline = pipeline("automatic-speech-recognition", model="openai/whisper-tiny", device="cpu")
 
     def extract_features(self, audio_path: str) -> np.ndarray:
         """
