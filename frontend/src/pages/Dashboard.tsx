@@ -408,14 +408,40 @@ export default function Dashboard() {
                                     <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                                     ANALYSIS TIMELINE
                                 </div>
-                                <div className="flex-1 flex items-start justify-between relative mt-12 overflow-x-auto pb-2">
+
+                                {/* Mobile: Vertical step list */}
+                                <div className="flex flex-col gap-3 lg:hidden">
+                                    {[
+                                        { icon: <Download size={16} />, label: 'Asset Uploaded' },
+                                        { icon: <UploadCloud size={16} />, label: 'Media Processed' },
+                                        { icon: <Info size={16} />, label: 'Transcript Analysed' },
+                                        { icon: <AlertTriangle size={16} />, label: 'Threat Detected' },
+                                        { icon: <CheckCircle size={16} />, label: 'Report Generated' },
+                                    ].map((step, idx, arr) => (
+                                        <div key={idx} className="flex items-center gap-4 relative">
+                                            <div className="flex flex-col items-center shrink-0">
+                                                <div className="w-9 h-9 rounded-full bg-black flex items-center justify-center text-cyan-400 shadow-md z-10">
+                                                    {step.icon}
+                                                </div>
+                                                {idx < arr.length - 1 && (
+                                                    <div className="w-[2px] h-5 bg-gray-300 mt-1"></div>
+                                                )}
+                                            </div>
+                                            <div className="text-[11px] font-black text-gray-700 uppercase tracking-wider">
+                                                {step.label}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Desktop: Horizontal snake line layout */}
+                                <div className="hidden lg:flex flex-1 items-start justify-between relative mt-12">
                                     {/* Connecting Snake Line */}
                                     <div className="absolute -top-6 left-12 right-12 h-24 z-0">
                                         <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
                                             <path d="M 0 50 Q 12.5 -50, 25 50 T 50 50 T 75 50 T 100 50" stroke="black" strokeWidth="4" fill="none" vectorEffect="non-scaling-stroke" strokeLinecap="round" />
                                         </svg>
                                     </div>
-
                                     {/* Steps */}
                                     <div className="flex flex-col items-center gap-8 relative z-10 w-24">
                                         <div className="w-12 h-12 rounded-full bg-black flex items-center justify-center text-cyan-400 shadow-lg"><Download size={20} /></div>
@@ -439,6 +465,7 @@ export default function Dashboard() {
                                     </div>
                                 </div>
                             </div>
+
 
                             {/* Right Col: Threat Footprint & Buttons */}
                             <div className="flex flex-col gap-6 print:break-inside-avoid">
