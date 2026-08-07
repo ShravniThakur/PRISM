@@ -32,6 +32,9 @@ class DeepfakeScoringEngine:
         
         self._load_video_model()
         self._load_audio_model()
+        
+        # Must run AFTER both models load — @spaces.GPU serializes everything
+        self._strip_all_parametrizations()
 
     def _load_video_model(self):
         print("Loading Video Deepfake Model (DeepGuard/KoreaPeter)...")
@@ -90,9 +93,7 @@ class DeepfakeScoringEngine:
                 print("YOLO face detector pre-initialized.")
             except Exception as yolo_e:
                 print(f"YOLO pre-init failed (non-fatal): {yolo_e}")
-            
-            # Now strip parametrizations — YOLO's weight_norm is visible
-            self._strip_all_parametrizations()
+
         except Exception as e:
             print(f"Failed to load video model: {e}")
 
