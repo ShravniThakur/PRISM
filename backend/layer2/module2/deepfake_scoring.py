@@ -35,6 +35,28 @@ class DeepfakeScoringEngine:
             else:
                 device_str = "cpu"
             import os
+            import sys
+            from huggingface_hub import hf_hub_download
+            
+            # ---------------------------------------------------------
+            # HACK: Bypass transformers trust_remote_code absolute import bug
+            # We explicitly download the configuration file to the local directory
+            # so that pipeline_video_ms_eff_gcvit can import it directly.
+            # ---------------------------------------------------------
+            local_dir = os.path.dirname(os.path.abspath(__file__))
+            if local_dir not in sys.path:
+                sys.path.insert(0, local_dir)
+                
+            try:
+                hf_hub_download(
+                    repo_id="KoreaPeter/ms-eff-gcvit-deepfake-b5-ff-plus-plus",
+                    filename="configuration_ms_eff_gcvit.py",
+                    token=os.environ.get("HF_READ_TOKEN"),
+                    local_dir=local_dir
+                )
+            except Exception as e:
+                print(f"Failed to download configuration explicitly: {e}")
+            
             self.video_model = pipeline(
                 "video-classification",
                 model="KoreaPeter/ms-eff-gcvit-deepfake-b5-ff-plus-plus",
