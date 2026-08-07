@@ -79,10 +79,10 @@ class DeepfakeScoringEngine:
         
         overall = 0.0
         try:
-            # 1. Get overall score directly from the full video
-            full_results = self.video_model(video_path)
+            # 1. Get overall score directly from the full video, requesting all labels
+            full_results = self.video_model(video_path, top_k=None)
             for res in full_results:
-                if res['label'] == 'fake':
+                if res['label'].lower() == 'fake':
                     overall = res['score']
 
             # Timeline graph data logic removed
