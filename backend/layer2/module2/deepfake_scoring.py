@@ -32,8 +32,6 @@ class DeepfakeScoringEngine:
         
         self._load_video_model()
         self._load_audio_model()
-        # Must run AFTER both models load — @spaces.GPU serializes everything
-        self._strip_all_parametrizations()
 
     def _load_video_model(self):
         print("Loading Video Deepfake Model (DeepGuard/KoreaPeter)...")
@@ -77,6 +75,24 @@ class DeepfakeScoringEngine:
             )
             
             print("Video model loaded successfully.")
+            
+            # -------------------------------------------------------
+            # CRITICAL: Force YOLO face detector to initialize NOW.
+            # _ensure_detector() is lazy — YOLO only loads on the
+            # first inference call. If we let it lazy-init inside
+            # @spaces.GPU, ZeroGPU tries to serialize the newly-
+            # created YOLO (which has weight_norm parametrizations)
+            # and crashes. By calling it here at startup, YOLO exists
+            # before ZeroGPU takes its initial tensor snapshot.
+            # -------------------------------------------------------
+            try:
+                self.video_model._ensure_detector(conf_thres=0.5)
+                print("YOLO face detector pre-initialized.")
+            except Exception as yolo_e:
+                print(f"YOLO pre-init failed (non-fatal): {yolo_e}")
+            
+            # Now strip parametrizations — YOLO's weight_norm is visible
+            self._strip_all_parametrizations()
         except Exception as e:
             print(f"Failed to load video model: {e}")
 
