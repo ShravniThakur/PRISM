@@ -10,6 +10,10 @@ CURRENT_DIR = Path(__file__).resolve().parent
 PRISM_ROOT = CURRENT_DIR.parent.parent.parent
 DEEPFAKE_MODELS_DIR = PRISM_ROOT / "DeepFakeModels"
 
+# Global references to prevent ZeroGPU from serializing the audio model via 'self'
+_AUDIO_EXTRACTOR = None
+_AUDIO_MODEL = None
+
 try:
     import spaces
 except ImportError:
@@ -27,8 +31,7 @@ class DeepfakeScoringEngine:
         print(f"DeepfakeScoringEngine running on: {self.device}")
         
         self.video_model = None
-        self.audio_extractor = None
-        self.audio_model = None
+        # audio models moved to globals so ZeroGPU doesn't capture them in 'self'
         
         self._load_video_model()
         self._load_audio_model()
@@ -130,11 +133,12 @@ class DeepfakeScoringEngine:
         print("Loading Audio Deepfake Model (Wav2Vec2)...")
         # Load Wav2Vec2 model directly from Hugging Face Hub
         model_path = "garystafford/wav2vec2-deepfake-voice-detector"
+        global _AUDIO_EXTRACTOR, _AUDIO_MODEL
         try:
-            self.audio_extractor = AutoFeatureExtractor.from_pretrained(model_path)
-            self.audio_model = AutoModelForAudioClassification.from_pretrained(model_path)
-            self.audio_model.to(self.device)
-            self.audio_model.eval()
+            _AUDIO_EXTRACTOR = AutoFeatureExtractor.from_pretrained(model_path)
+            _AUDIO_MODEL = AutoModelForAudioClassification.from_pretrained(model_path)
+            _AUDIO_MODEL.to(self.device)
+            _AUDIO_MODEL.eval()
             print("Wav2Vec2 Weights loaded successfully.")
         except Exception as e:
             print(f"Failed to load audio model: {e}")
@@ -177,7 +181,8 @@ class DeepfakeScoringEngine:
         Takes a 1D audio numpy array (16kHz), chunks it, and runs Wav2Vec2.
         Returns the filtered average fake probability and the timeline array.
         """
-        if not self.audio_model or audio_array is None:
+        global _AUDIO_EXTRACTOR, _AUDIO_MODEL
+        if not _AUDIO_MODEL or audio_array is None:
             return {"overall_score": 0.0}
             
         sampling_rate = 16000
@@ -192,14 +197,14 @@ class DeepfakeScoringEngine:
                 if len(chunk) < sampling_rate:
                     continue
                     
-                inputs = self.audio_extractor(
+                inputs = _AUDIO_EXTRACTOR(
                     chunk, 
                     sampling_rate=sampling_rate, 
                     return_tensors="pt"
                 )
                 inputs = {k: v.to(self.device) for k, v in inputs.items()}
                 
-                outputs = self.audio_model(**inputs)
+                outputs = _AUDIO_MODEL(**inputs)
                 
                 probs = F.softmax(outputs.logits, dim=-1)
                 

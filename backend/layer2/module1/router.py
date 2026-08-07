@@ -5,8 +5,9 @@ from layer2.module1.scripts.inference_pipeline import TextThreatAnalyzer
 
 router = APIRouter(prefix="/analyze", tags=["Text Threat Detection (Module 1)"])
 
-# Initialize analyzer globally
-analyzer = TextThreatAnalyzer()
+# Initialize analyzer globally. Force CPU to avoid ZeroGPU CUDA exceptions
+# since this runs on a background thread and is not decorated with @spaces.GPU.
+analyzer = TextThreatAnalyzer(device="cpu")
 
 class TextAnalysisRequest(BaseModel):
     text: str
@@ -25,3 +26,7 @@ async def analyze_text_endpoint(request: TextAnalysisRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/test_raw")
+async def test_raw(request: TextAnalysisRequest):
+    return analyzer._classifier(request.text, truncation=True, max_length=256)

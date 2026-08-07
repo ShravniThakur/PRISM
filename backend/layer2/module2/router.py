@@ -44,6 +44,7 @@ def analyze_media_endpoint(file: UploadFile = File(...)):
         vision_score = 0.0
         audio_score = 0.0
         extracted_text = ""
+        vid_results = {}
         
         # 3. Vision Pipeline
         if media_paths.get("has_video"):

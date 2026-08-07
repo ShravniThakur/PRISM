@@ -525,7 +525,7 @@ class TextThreatAnalyzer:
 
         except Exception as exc:                        # noqa: BLE001
             log.error("FinBERT inference error: %s", exc, exc_info=True)
-            return 0.5, "INFERENCE_ERROR"              # neutral fallback
+            raise exc
 
     # ------------------------------------------------------------------
     # Public: async analysis
