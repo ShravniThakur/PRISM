@@ -32,6 +32,8 @@ class DeepfakeScoringEngine:
         
         self._load_video_model()
         self._load_audio_model()
+        # Must run AFTER both models load — @spaces.GPU serializes everything
+        self._strip_all_parametrizations()
 
     def _load_video_model(self):
         print("Loading Video Deepfake Model (DeepGuard/KoreaPeter)...")
@@ -74,26 +76,35 @@ class DeepfakeScoringEngine:
                 token=os.environ.get("HF_READ_TOKEN")
             )
             
-            # -----------------------------------------------------------
-            # Remove parametrized modules (e.g. weight_norm) from model.
-            # ZeroGPU cannot serialize parametrized layers, so we bake
-            # the constraints directly into the weights. This preserves
-            # all accuracy while making the model ZeroGPU-compatible.
-            # -----------------------------------------------------------
-            try:
-                import torch.nn.utils.parametrize as P
-                underlying_model = self.video_model.model
-                for module in underlying_model.modules():
-                    if P.is_parametrized(module):
-                        for attr in list(module.parametrizations.keys()):
-                            P.remove_parametrizations(module, attr, leave_parametrized=False)
-                print("Parametrizations removed. Model is ZeroGPU-compatible.")
-            except Exception as param_e:
-                print(f"Could not remove parametrizations (non-fatal): {param_e}")
-            
             print("Video model loaded successfully.")
         except Exception as e:
             print(f"Failed to load video model: {e}")
+
+    def _strip_all_parametrizations(self):
+        """
+        Use gc to find EVERY nn.Module in the process and strip weight_norm /
+        any other parametrizations. ZeroGPU serializes the entire process when
+        @spaces.GPU fires, so ALL modules must be clean — not just video_model.
+        """
+        import gc
+        import torch.nn.utils.parametrize as P
+        count = 0
+        visited = set()
+        for obj in gc.get_objects():
+            if not isinstance(obj, torch.nn.Module):
+                continue
+            obj_id = id(obj)
+            if obj_id in visited:
+                continue
+            visited.add(obj_id)
+            if P.is_parametrized(obj):
+                try:
+                    for attr in list(obj.parametrizations.keys()):
+                        P.remove_parametrizations(obj, attr, leave_parametrized=False)
+                    count += 1
+                except Exception:
+                    pass
+        print(f"Stripped parametrizations from {count} modules. Model is ZeroGPU-compatible.")
 
     def _load_audio_model(self):
         print("Loading Audio Deepfake Model (Wav2Vec2)...")
