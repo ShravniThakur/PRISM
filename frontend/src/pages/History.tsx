@@ -14,16 +14,16 @@ export default function History() {
   return (
     <div className="min-h-screen bg-white text-black font-sans flex">
       <Sidebar />
-      <div className="ml-56 p-12 w-full max-w-5xl pt-28">
-        <h1 className="text-3xl font-black mb-8 tracking-widest uppercase">HISTORY</h1>
+      <div className="ml-0 md:ml-56 p-4 md:p-12 w-full max-w-5xl pt-20 md:pt-28 pb-24 md:pb-4">
+        <h1 className="text-2xl md:text-3xl font-black mb-8 tracking-widest uppercase">HISTORY</h1>
         
         <div className="space-y-4">
           {scans.length === 0 ? (
              <p className="text-gray-500">No scan history found. Run an analysis first!</p>
           ) : (
              scans.map((scan) => (
-               <div key={scan.id} className="flex justify-between items-center bg-[#E2E4E9] p-4 rounded-md">
-                 <div className="font-bold text-gray-800 text-sm px-4">
+               <div key={scan.id} className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 bg-[#E2E4E9] p-4 rounded-md">
+                 <div className="font-bold text-gray-800 text-sm px-2 sm:px-4 break-all">
                    SCAN_{scan.id.split('-')[0].toUpperCase()}.LOG
                  </div>
                  <button 
@@ -40,7 +40,7 @@ export default function History() {
                           }
                       }
                    }})}
-                   className="bg-black border border-gray-700 px-10 py-3 text-cyan-400 font-bold text-xs tracking-widest rounded hover:bg-gray-900 transition">
+                   className="bg-black border border-gray-700 px-6 sm:px-10 py-3 text-cyan-400 font-bold text-xs tracking-widest rounded hover:bg-gray-900 transition w-full sm:w-auto">
                    VIEW
                  </button>
                </div>

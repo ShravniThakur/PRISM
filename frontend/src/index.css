@@ -7,9 +7,18 @@
   --color-prism-alert: #EF4444;
 }
 
+html {
+  /* Prevent tap delay on mobile */
+  touch-action: manipulation;
+  /* Smooth scroll */
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: var(--color-prism-dark);
   color: white;
+  /* Prevent horizontal overflow on mobile */
+  overflow-x: hidden;
 }
 
 @keyframes marquee {
@@ -28,6 +37,10 @@ body {
     background: rgba(17, 24, 39, 0.7);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  /* Safe area padding for mobile notch/home indicator */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 

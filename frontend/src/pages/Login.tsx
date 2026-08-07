@@ -31,11 +31,11 @@ export default function Login() {
                 {/* Cybersecurity Grid Background - Bottom Right */}
                 <div className="absolute bottom-0 right-0 w-full h-full bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-100 animate-pulse [mask-image:radial-gradient(circle_at_bottom_right,black_20%,transparent_60%)] pointer-events-none -z-10"></div>
                 
-                <Link to="/" className="text-6xl font-black bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-8 tracking-wider uppercase hover:opacity-80 transition-opacity hover:scale-105 transform inline-block">
+                <Link to="/" className="text-4xl sm:text-6xl font-black bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent mb-6 sm:mb-8 tracking-wider uppercase hover:opacity-80 transition-opacity hover:scale-105 transform inline-block">
                     PRISM
                 </Link>
                 
-                <p className="text-white text-center text-xl font-medium mb-12 max-w-lg">
+                <p className="text-white text-center text-base sm:text-xl font-medium mb-8 sm:mb-12 max-w-lg">
                     Zero-Trust AI Threat Detection.<br/>
                     Sign in to access your analysis portal.
                 </p>
@@ -55,7 +55,7 @@ export default function Login() {
                     />
                 </div>
                 
-                <p className="text-white text-center text-lg font-medium opacity-90 max-w-md mb-12">
+                <p className="text-white text-center text-base sm:text-lg font-medium opacity-90 max-w-md mb-8 sm:mb-12">
                     Authorized personnel only. All access is monitored.
                 </p>
                 

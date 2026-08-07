@@ -215,26 +215,26 @@ export default function EntityPortal() {
   return (
     <div className="min-h-screen bg-gray-50 text-black font-sans flex overflow-x-hidden">
       {/* Portal Navbar */}
-      <div className="w-full h-[72px] bg-black border-b border-gray-800 fixed top-0 left-0 z-50 flex items-center px-8 justify-between">
-        <div className="flex items-center">
-            <Link to="/" className="text-cyan-400 font-bold text-xl tracking-widest hover:text-cyan-300 transition">
+      <div className="w-full h-[60px] md:h-[72px] bg-black border-b border-gray-800 fixed top-0 left-0 z-50 flex items-center px-4 md:px-8 justify-between">
+        <div className="flex items-center min-w-0">
+            <Link to="/" className="text-cyan-400 font-bold text-lg md:text-xl tracking-widest hover:text-cyan-300 transition shrink-0">
                 PRISM
             </Link>
-            <div className="ml-8 text-gray-500 text-xs font-black tracking-widest border-l border-gray-800 pl-8">
+            <div className="ml-4 md:ml-8 text-gray-500 text-[10px] md:text-xs font-black tracking-widest border-l border-gray-800 pl-4 md:pl-8 hidden sm:block">
                 ENTITY PORTAL
             </div>
         </div>
         {loggedInEntity && (
-            <div className="flex items-center gap-6">
-                <div className="text-xs font-bold text-gray-400">
-                    LOGGED IN AS: <span className="text-cyan-400 tracking-wider ml-2">{loggedInEntity.name.toUpperCase()}</span>
+            <div className="flex items-center gap-4 md:gap-6 min-w-0">
+                <div className="text-[10px] md:text-xs font-bold text-gray-400 truncate max-w-[120px] sm:max-w-none">
+                    <span className="hidden sm:inline">LOGGED IN AS: </span><span className="text-cyan-400 tracking-wider ml-1">{loggedInEntity.name.toUpperCase()}</span>
                 </div>
             </div>
         )}
       </div>
 
-      {/* Portal Sidebar */}
-      <div className="w-64 h-[calc(100vh-72px)] bg-black border-r border-gray-800 flex flex-col justify-between text-white fixed top-[72px] left-0 z-40">
+      {/* Portal Sidebar — hidden on mobile */}
+      <div className="hidden md:flex w-64 h-[calc(100vh-72px)] bg-black border-r border-gray-800 flex-col justify-between text-white fixed top-[72px] left-0 z-40">
         <div className="pt-4">
             <button 
               onClick={() => setActiveTab('ACCOUNT')}
@@ -282,7 +282,7 @@ export default function EntityPortal() {
       </div>
 
       {/* Main Content */}
-      <div className="ml-64 pt-32 p-12 w-full max-w-5xl">
+      <div className="ml-0 md:ml-64 pt-20 md:pt-32 p-4 md:p-12 w-full max-w-5xl pb-28 md:pb-4">
         
         {/* ACCOUNT TAB */}
         {activeTab === 'ACCOUNT' && (
@@ -635,6 +635,58 @@ export default function EntityPortal() {
             </div>
         )}
 
+      </div>
+
+      {/* Mobile Bottom Tab Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-gray-800 flex items-center justify-around h-16">
+        <button
+          onClick={() => setActiveTab('ACCOUNT')}
+          className={`flex flex-col items-center gap-0.5 flex-1 py-2 text-[9px] font-black tracking-widest transition ${
+            activeTab === 'ACCOUNT' ? 'text-cyan-400' : 'text-gray-500'
+          }`}
+        >
+          <UserPlus size={18} />
+          ACCOUNT
+        </button>
+        <button
+          onClick={() => setActiveTab('PUBLISH')}
+          disabled={!loggedInEntity}
+          className={`flex flex-col items-center gap-0.5 flex-1 py-2 text-[9px] font-black tracking-widest transition ${
+            !loggedInEntity ? 'text-gray-700 cursor-not-allowed' : activeTab === 'PUBLISH' ? 'text-cyan-400' : 'text-gray-500'
+          }`}
+        >
+          <FileSignature size={18} />
+          SIGN
+        </button>
+        <button
+          onClick={() => setActiveTab('REVOKE')}
+          disabled={!loggedInEntity}
+          className={`flex flex-col items-center gap-0.5 flex-1 py-2 text-[9px] font-black tracking-widest transition ${
+            !loggedInEntity ? 'text-gray-700 cursor-not-allowed' : activeTab === 'REVOKE' ? 'text-cyan-400' : 'text-gray-500'
+          }`}
+        >
+          <Key size={18} />
+          REVOKE
+        </button>
+        <button
+          onClick={() => setActiveTab('ASSETS')}
+          disabled={!loggedInEntity}
+          className={`flex flex-col items-center gap-0.5 flex-1 py-2 text-[9px] font-black tracking-widest transition ${
+            !loggedInEntity ? 'text-gray-700 cursor-not-allowed' : activeTab === 'ASSETS' ? 'text-cyan-400' : 'text-gray-500'
+          }`}
+        >
+          <List size={18} />
+          ASSETS
+        </button>
+        {loggedInEntity && (
+          <button
+            onClick={handleSignOut}
+            className="flex flex-col items-center gap-0.5 flex-1 py-2 text-[9px] font-black tracking-widest text-gray-500 hover:text-red-400 transition"
+          >
+            <LogOut size={18} />
+            SIGN OUT
+          </button>
+        )}
       </div>
     </div>
   );

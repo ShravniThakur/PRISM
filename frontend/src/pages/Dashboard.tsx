@@ -135,8 +135,8 @@ export default function Dashboard() {
             <div className="print:hidden">
                 <Sidebar />
             </div>
-            <div className="ml-56 print:ml-0 p-12 print:p-0 w-full pt-28 print:pt-8 pr-12">
-                <h1 className="text-3xl font-black mb-2 tracking-widest uppercase">
+        <div className="ml-0 md:ml-56 print:ml-0 p-4 md:p-12 print:p-0 w-full pt-20 md:pt-28 print:pt-8 md:pr-12 pb-24 md:pb-4">
+                <h1 className="text-2xl md:text-3xl font-black mb-2 tracking-widest uppercase">
                     {uiState === 'RESULT' ? 'Analysis Dashboard' : 'Analyse'}
                 </h1>
                 {uiState === 'INPUT' && (
@@ -249,8 +249,8 @@ export default function Dashboard() {
                         </div>
 
                         {/* Row 2: 5 Separate Blocks (Auth, Video, Audio, Text, Overall) */}
-                        <div className="grid grid-cols-1 lg:grid-cols-5 print:grid-cols-3 gap-6 items-stretch print:items-start print:break-inside-avoid">
-                            <div className="bg-black border border-gray-800 rounded-xl p-5 flex flex-col justify-center shadow-lg h-full">
+                        <div className="grid grid-cols-2 lg:grid-cols-5 print:grid-cols-3 gap-3 md:gap-6 items-stretch print:items-start print:break-inside-avoid">
+                            <div className="col-span-2 lg:col-span-1 bg-black border border-gray-800 rounded-xl p-5 flex flex-col justify-center shadow-lg h-full">
                                 <div className="text-[10px] font-black text-white tracking-widest mb-2">AUTHENTICATION STATUS</div>
                                 <div className={`flex items-center gap-2 text-[10px] font-black tracking-widest ${finalScore.features_used?.is_auth ? 'text-[#39FF14]' : 'text-[#FF3333]'}`}>
                                     {finalScore.features_used?.is_auth ? <ShieldCheck size={14} /> : <ShieldAlert size={14} />}
@@ -408,7 +408,7 @@ export default function Dashboard() {
                                     <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                                     ANALYSIS TIMELINE
                                 </div>
-                                <div className="flex-1 flex items-start justify-between relative mt-12">
+                                <div className="flex-1 flex items-start justify-between relative mt-12 overflow-x-auto pb-2">
                                     {/* Connecting Snake Line */}
                                     <div className="absolute -top-6 left-12 right-12 h-24 z-0">
                                         <svg width="100%" height="100%" preserveAspectRatio="none" viewBox="0 0 100 100" style={{ overflow: 'visible' }}>
@@ -447,9 +447,9 @@ export default function Dashboard() {
                                         <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
                                         THREAT FOOTPRINT
                                     </div>
-                                    <div className="flex flex-row items-center h-48">
+                                    <div className="flex flex-col md:flex-row items-center h-auto md:h-48">
                                         {/* Radar Chart */}
-                                        <div className="w-1/2 h-full relative">
+                                        <div className="w-full md:w-1/2 h-48 relative">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                                                     <PolarGrid stroke="#e5e7eb" strokeWidth={1.5} />
@@ -460,7 +460,7 @@ export default function Dashboard() {
                                         </div>
 
                                         {/* Scores List */}
-                                        <div className="w-1/2 flex flex-col justify-center pl-8 gap-4">
+                                        <div className="w-full md:w-1/2 flex flex-col justify-center md:pl-8 pl-4 gap-4 mt-4 md:mt-0">
                                             <div className="flex justify-between items-center pb-2 border-b border-gray-200/50">
                                                 <div className="text-[11px] font-black text-gray-600 uppercase tracking-widest">Text</div>
                                                 <div className="text-sm font-black text-[#FF3333]">{Math.round((finalScore.features_used?.text_score || 0) * 100)}%</div>
