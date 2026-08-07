@@ -34,12 +34,14 @@ class DeepfakeScoringEngine:
                 device_str = "mps"
             else:
                 device_str = "cpu"
+            import os
             self.video_model = pipeline(
                 "video-classification",
                 model="KoreaPeter/ms-eff-gcvit-deepfake-b5-ff-plus-plus",
                 trust_remote_code=True,
                 device=device_str,
-                model_kwargs={"cache_dir": str(DEEPFAKE_MODELS_DIR)}
+                model_kwargs={"cache_dir": str(DEEPFAKE_MODELS_DIR)},
+                token=os.environ.get("HF_TOKEN")
             )
             print("Video model loaded successfully.")
         except Exception as e:
