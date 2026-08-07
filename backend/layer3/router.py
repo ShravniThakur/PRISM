@@ -50,7 +50,7 @@ async def orchestrate_endpoint(
     open_files = []
     
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=300.0) as client:
             tasks = []
             
             # 1. Layer 1 Auth
