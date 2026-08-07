@@ -99,28 +99,31 @@ class DeepfakeScoringEngine:
 
     def _strip_all_parametrizations(self):
         """
-        Use gc to find EVERY nn.Module in the process and strip weight_norm /
-        any other parametrizations. ZeroGPU serializes the entire process when
-        @spaces.GPU fires, so ALL modules must be clean — not just video_model.
+        ZeroGPU uses RPC which fails if ANY PyTorch module contains parametrizations
+        (like weight_norm or spectral_norm). This globally strips both new and old
+        parametrizations from all loaded models.
         """
-        import gc
+        import torch
         import torch.nn.utils.parametrize as P
+        import gc
+        
         count = 0
-        visited = set()
         for obj in gc.get_objects():
-            if not isinstance(obj, torch.nn.Module):
-                continue
-            obj_id = id(obj)
-            if obj_id in visited:
-                continue
-            visited.add(obj_id)
-            if P.is_parametrized(obj):
-                try:
+            if isinstance(obj, torch.nn.Module):
+                # 1. Strip new PyTorch 2.0+ parametrizations
+                if P.is_parametrized(obj):
                     for attr in list(obj.parametrizations.keys()):
-                        P.remove_parametrizations(obj, attr, leave_parametrized=False)
+                        P.remove_parametrizations(obj, attr, leave_parametrized=True)
                     count += 1
-                except Exception:
-                    pass
+                
+                # 2. Strip legacy PyTorch 1.x weight_norm (Wav2Vec2 uses this!)
+                if hasattr(obj, "weight_g") and hasattr(obj, "weight_v"):
+                    try:
+                        torch.nn.utils.remove_weight_norm(obj)
+                        count += 1
+                    except ValueError:
+                        pass # Was not a weight_norm module or already removed
+                        
         print(f"Stripped parametrizations from {count} modules. Model is ZeroGPU-compatible.")
 
     def _load_audio_model(self):
