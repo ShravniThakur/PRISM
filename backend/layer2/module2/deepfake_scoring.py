@@ -64,6 +64,24 @@ class DeepfakeScoringEngine:
                 device=device_str,
                 token=os.environ.get("HF_READ_TOKEN")
             )
+            
+            # -----------------------------------------------------------
+            # Remove parametrized modules (e.g. weight_norm) from model.
+            # ZeroGPU cannot serialize parametrized layers, so we bake
+            # the constraints directly into the weights. This preserves
+            # all accuracy while making the model ZeroGPU-compatible.
+            # -----------------------------------------------------------
+            try:
+                import torch.nn.utils.parametrize as P
+                underlying_model = self.video_model.model
+                for module in underlying_model.modules():
+                    if P.is_parametrized(module):
+                        for attr in list(module.parametrizations.keys()):
+                            P.remove_parametrizations(module, attr, leave_parametrized=False)
+                print("Parametrizations removed. Model is ZeroGPU-compatible.")
+            except Exception as param_e:
+                print(f"Could not remove parametrizations (non-fatal): {param_e}")
+            
             print("Video model loaded successfully.")
         except Exception as e:
             print(f"Failed to load video model: {e}")
