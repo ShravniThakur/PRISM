@@ -88,7 +88,7 @@ class DeepfakeScoringEngine:
             error_msg = str(e)
             print(f"Error evaluating video: {error_msg}")
             
-        return {"overall_score": overall, "error": error_msg}
+        return {"overall_score": overall, "error": error_msg, "raw_results": full_results if 'full_results' in locals() else None}
 
     def score_audio(self, audio_array: np.ndarray, chunk_duration_sec: int = 5) -> dict:
         """
