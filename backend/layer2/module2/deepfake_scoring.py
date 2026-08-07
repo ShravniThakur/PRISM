@@ -41,7 +41,7 @@ class DeepfakeScoringEngine:
                 trust_remote_code=True,
                 device=device_str,
                 model_kwargs={"cache_dir": str(DEEPFAKE_MODELS_DIR)},
-                token=os.environ.get("HF_TOKEN")
+                token=os.environ.get("HF_READ_TOKEN")
             )
             print("Video model loaded successfully.")
         except Exception as e:
