@@ -10,15 +10,6 @@ CURRENT_DIR = Path(__file__).resolve().parent
 PRISM_ROOT = CURRENT_DIR.parent.parent.parent
 DEEPFAKE_MODELS_DIR = PRISM_ROOT / "DeepFakeModels"
 
-try:
-    import spaces
-except ImportError:
-    class DummySpaces:
-        @staticmethod
-        def GPU(func):
-            return func
-    spaces = DummySpaces()
-
 class DeepfakeScoringEngine:
     def __init__(self):
         # Force CPU to prevent Hugging Face ZeroGPU from crashing on CUDA init
@@ -90,7 +81,6 @@ class DeepfakeScoringEngine:
         except Exception as e:
             print(f"Failed to load audio model: {e}")
 
-    @spaces.GPU
     def score_video(self, video_path: str) -> dict:
         """
         Takes a path to a raw video file.
