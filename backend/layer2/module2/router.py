@@ -77,7 +77,8 @@ def analyze_media_endpoint(file: UploadFile = File(...)):
             "status": "success",
             "video_fake_score": vision_score,
             "audio_fake_score": audio_score,
-            "extracted_ocr_text": extracted_text
+            "extracted_ocr_text": extracted_text,
+            "video_error": vid_results.get("error")
         }
         
     except Exception as e:

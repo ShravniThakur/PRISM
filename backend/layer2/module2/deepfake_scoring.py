@@ -74,6 +74,7 @@ class DeepfakeScoringEngine:
         import math
         
         overall = 0.0
+        error_msg = None
         try:
             # 1. Get overall score directly from the full video
             full_results = self.video_model(video_path)
@@ -84,9 +85,10 @@ class DeepfakeScoringEngine:
             # Timeline graph data logic removed
             
         except Exception as e:
-            print(f"Error evaluating video: {e}")
+            error_msg = str(e)
+            print(f"Error evaluating video: {error_msg}")
             
-        return {"overall_score": overall}
+        return {"overall_score": overall, "error": error_msg}
 
     def score_audio(self, audio_array: np.ndarray, chunk_duration_sec: int = 5) -> dict:
         """
