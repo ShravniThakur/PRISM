@@ -12,13 +12,9 @@ DEEPFAKE_MODELS_DIR = PRISM_ROOT / "DeepFakeModels"
 
 class DeepfakeScoringEngine:
     def __init__(self):
-        # Cross-platform device selection: CUDA (HF GPU) > MPS (Mac) > CPU
-        if torch.cuda.is_available():
-            self.device = torch.device('cuda')
-        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-            self.device = torch.device('mps')
-        else:
-            self.device = torch.device('cpu')
+        # Force CPU to prevent Hugging Face ZeroGPU from crashing on CUDA init
+        # ZeroGPU spaces strictly forbid CUDA operations outside of @spaces.GPU decorators.
+        self.device = torch.device('cpu')
         print(f"DeepfakeScoringEngine running on: {self.device}")
         
         self.video_model = None
