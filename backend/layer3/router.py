@@ -5,7 +5,6 @@ import httpx
 import tempfile
 import shutil
 import logging
-from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
@@ -26,13 +25,13 @@ router = APIRouter(prefix="/brain", tags=["Central Brain Scoring Engine"])
 def _validate_service_url(name: str, url: str, fallback: str) -> str:
     """Validate a microservice URL and warn loudly if it contains unresolved
     shell variables (e.g. '$PORT') — a common Render env-var misconfiguration."""
-    parsed = urlparse(url)
-    if parsed.port is None and "$" in url:
+    if "$" in url:
         log.error(
             "[CONFIG] %s=%r contains an unresolved shell variable. "
             "Render does not expand $VAR references inside env-var values. "
             "Set the full URL (e.g. https://your-service.onrender.com) in the "
-            "Render dashboard. Falling back to %s.",
+            "Render dashboard, or delete the env var to use the auto-computed default. "
+            "Falling back to %s.",
             name, url, fallback
         )
         return fallback
