@@ -4,6 +4,8 @@ import asyncio
 import httpx
 import tempfile
 import shutil
+import logging
+from urllib.parse import urlparse
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
 from pydantic import BaseModel
 from typing import Optional
@@ -16,10 +18,37 @@ from layer3.db import get_db, ScanHistory, User
 from layer3.auth_router import get_current_user, get_current_user_optional
 from layer3.scripts.email_reporter import send_threat_report_email
 
+log = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/brain", tags=["Central Brain Scoring Engine"])
 
-LAYER1_URL = os.getenv("LAYER1_URL", "http://localhost:8000")
-LAYER2_URL = os.getenv("LAYER2_URL", "http://localhost:8001")
+
+def _validate_service_url(name: str, url: str, fallback: str) -> str:
+    """Validate a microservice URL and warn loudly if it contains unresolved
+    shell variables (e.g. '$PORT') — a common Render env-var misconfiguration."""
+    parsed = urlparse(url)
+    if parsed.port is None and "$" in url:
+        log.error(
+            "[CONFIG] %s=%r contains an unresolved shell variable. "
+            "Render does not expand $VAR references inside env-var values. "
+            "Set the full URL (e.g. https://your-service.onrender.com) in the "
+            "Render dashboard. Falling back to %s.",
+            name, url, fallback
+        )
+        return fallback
+    return url
+
+
+LAYER1_URL = _validate_service_url(
+    "LAYER1_URL",
+    os.getenv("LAYER1_URL", "http://localhost:8000"),
+    "http://localhost:8000",
+)
+LAYER2_URL = _validate_service_url(
+    "LAYER2_URL",
+    os.getenv("LAYER2_URL", "http://localhost:8001"),
+    "http://localhost:8001",
+)
 
 # Initialize Central Brain globally
 brain = CentralBrain()

@@ -12,6 +12,18 @@ load_dotenv(dotenv_path)
 
 resend.api_key = os.getenv("RESEND_API_KEY")
 
+# RESEND_FROM_EMAIL should be set to an address on a verified Resend domain.
+# Default is Resend's sandbox address which only delivers to the account owner.
+_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "PRISM Analysis <onboarding@resend.dev>")
+if "onboarding@resend.dev" in _FROM_EMAIL:
+    log.warning(
+        "RESEND_FROM_EMAIL is using the Resend sandbox address (%s). "
+        "Emails will only be delivered to your own Resend account email. "
+        "Verify a domain at https://resend.com/domains and set "
+        "RESEND_FROM_EMAIL=noreply@yourdomain.com to enable delivery to all users.",
+        _FROM_EMAIL
+    )
+
 def send_threat_report_email(user_email: str, llm_report_str: str, final_score: float, scan_id: str, features_used: dict = None):
     if not resend.api_key:
         log.warning("RESEND_API_KEY not found. Skipping email report.")
@@ -107,7 +119,7 @@ def send_threat_report_email(user_email: str, llm_report_str: str, final_score: 
 
     try:
         resend.Emails.send({
-            "from": "PRISM Analysis <onboarding@resend.dev>",
+            "from": _FROM_EMAIL,
             "to": [user_email],
             "subject": f"PRISM Threat Report - Score: {final_score}%",
             "html": html_content

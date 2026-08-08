@@ -13,7 +13,13 @@ DB_URL = os.getenv("DATABASE_URL")
 if not DB_URL:
     raise ValueError("DATABASE_URL must be set in the environment")
 
-engine = create_engine(DB_URL)
+engine = create_engine(
+    DB_URL,
+    pool_pre_ping=True,   # Detect stale connections before use (fixes SSL closed unexpectedly)
+    pool_recycle=300,     # Recycle connections every 5 minutes to prevent server-side timeout
+    pool_size=5,
+    max_overflow=10,
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
