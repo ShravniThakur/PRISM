@@ -210,12 +210,24 @@ async def orchestrate_endpoint(
         
         result["scan_id"] = scan_record.id
         result["llm_threat_report"] = llm_report
-        result["features_used"] = {
-            "video_score": vid_score,
-            "audio_score": aud_score,
-            "text_score": txt_score,
-            "is_auth": bool(is_auth == 1)
-        }
+        # When the sender is cryptographically authenticated, zero out all
+        # sub-scores in the response so the dashboard shows 0% everywhere
+        # and no forensic red flags are raised. Raw scores are still stored
+        # in the DB for audit purposes.
+        if is_auth == 1:
+            result["features_used"] = {
+                "video_score": 0.0,
+                "audio_score": 0.0,
+                "text_score": 0.0,
+                "is_auth": True
+            }
+        else:
+            result["features_used"] = {
+                "video_score": vid_score,
+                "audio_score": aud_score,
+                "text_score": txt_score,
+                "is_auth": False
+            }
         
         if user and user.email:
             background_tasks.add_task(send_threat_report_email, user.email, llm_report, result["threat_probability"], str(scan_record.id), result["features_used"])
@@ -282,12 +294,20 @@ def score_endpoint(request: ScoreRequest, background_tasks: BackgroundTasks, db:
         
         result["scan_id"] = scan_record.id
         result["llm_threat_report"] = llm_report
-        result["features_used"] = {
-            "video_score": result["features_used"]["video_score"],
-            "audio_score": result["features_used"]["audio_score"],
-            "text_score": result["features_used"]["text_score"],
-            "is_auth": bool(request.is_authenticated_sender == 1)
-        }
+        if request.is_authenticated_sender == 1:
+            result["features_used"] = {
+                "video_score": 0.0,
+                "audio_score": 0.0,
+                "text_score": 0.0,
+                "is_auth": True
+            }
+        else:
+            result["features_used"] = {
+                "video_score": result["features_used"]["video_score"],
+                "audio_score": result["features_used"]["audio_score"],
+                "text_score": result["features_used"]["text_score"],
+                "is_auth": False
+            }
         
         if user and user.email:
             background_tasks.add_task(send_threat_report_email, user.email, llm_report, result["threat_probability"], str(scan_record.id), result["features_used"])
